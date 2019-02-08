@@ -1,0 +1,85 @@
+<?xml version= "1.0"?>
+<menu>
+	<antipasti>
+		<antipasto>
+			<nome>Bruschetta con pomodoro</nome>
+			<prezzo>2.50</prezzo>
+		</antipasto>
+		<antipasto>
+			<nome>Bruschetta con prosciutto</nome>
+			<prezzo>2.50</prezzo>
+		</antipasto>
+		<antipasto>
+			<nome>Bruschetta con olive</nome>
+			<prezzo>3.00</prezzo>
+		</antipasto>
+		<antipasto>
+			<nome>Fiore di zucca</nome>
+			<prezzo>3.50</prezzo>
+		</antipasto>
+		<antipasto>
+			<nome>Crocchetta di patate</nome>
+			<prezzo>3.00</prezzo>
+		</antipasto>
+		<antipasto>
+			<nome>Olive ascolane</nome>
+			<prezzo>3.50</prezzo>
+		</antipasto>
+	</antipasti>
+	<primi>
+		<primo>
+			<nome>Spaghetti alla carbonara</nome>
+			<prezzo>7.50</prezzo>
+		</primo>
+		<primo>
+			<nome>Tonnarelli cacio e pepe</nome>
+			<prezzo>7.00</prezzo>
+		</primo>
+		<primo>
+			<nome>Bucatini alla amatriciana</nome>
+			<prezzo>7.00</prezzo>
+		</primo>
+		<primo>	
+			<nome>Penne all'arrabbiata</nome>
+			<prezzo>6.00</prezzo>
+		</primo>
+	</primi>
+	<secondi>
+		<secondo>
+			<nome>Filetto</nome>
+			<prezzo>12.00</prezzo>
+		</secondo>
+		<secondo>
+			<nome>Bistecca</nome>
+			<prezzo>7.00</prezzo>
+		</secondo>
+	</secondi>
+	<bevande>
+		<bevanda>
+			<nome>Acqua naturale</nome>
+			<prezzo>1.00</prezzo>
+		</bevanda>
+		<bevanda>
+			<nome>Acqua minerale</nome>
+			<prezzo>2.00</prezzo>
+		</bevanda>
+		<bevanda>
+			<nome>Birra</nome>
+			<prezzo>3.50</prezzo>
+		</bevanda>
+		<bevanda>
+			<nome>Vino bianco</nome>
+			<prezzo>3.00</prezzo>
+		</bevanda>
+	</bevande>
+	<dolci>
+		<dolce>
+			<nome>Tiramisu</nome>
+			<prezzo>5.50</prezzo>
+		</dolce>
+		<dolce>
+			<nome>Gelato</nome>
+			<prezzo>5.50</prezzo>
+		</dolce>
+	</dolci>
+</menu>
