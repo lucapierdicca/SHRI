@@ -15,7 +15,7 @@ def state_entails(action,state):
 
 #===========================================================================
 #===========================================================================
-debug = False
+debug = True
 
 def attesa_suc(args):
 	curr_input = args[0]
@@ -35,6 +35,175 @@ def attesa_suc(args):
 
 	return applicable_successors
 
+
+def frame_mapping(orig_sen_words_string,frames):
+
+	tint_url = "http://localhost:8012/tint?"
+	response = requests.get(tint_url+'text='+orig_sen_words_string+'&format=json')
+	
+	orig_sen_annotations_list = json.loads(response.text)
+
+	e_index = [i['index'] for i in orig_sen_annotations_list['sentences'][0]['tokens'] if i['pos'] == 'CC']
+
+	orig_sen_words_list = [i['word'] if i['index'] not in e_index else i['word']+'_*' for i in orig_sen_annotations_list['sentences'][0]['tokens']]
+
+	#una lista vuota che verrà riempita solo in caso di terminazione senza errori di questa funzione
+	mapped_frame = []
+
+	# ====================VERBI - FRAME CLASSIFICATION PRELIMINARE===================
+	
+	#tramite pos raccolgo tutti i verbi
+	pos_verb = ['V','V+PC','VM']
+	verbs = [[token['word'],token['lemma'],token['index']] for token in orig_sen_annotations_list['sentences'][0]['tokens'] if token['pos'] in pos_verb]
+
+	#se non ce ne sono -> error
+	if len(verbs) < 1:
+		if debug:
+			print('Non ci sono verbi')
+		return mapped_frame
+
+	#altrimenti
+	#tramite dep graph trovo la root
+	for i in orig_sen_annotations_list['sentences'][0]['basic-dependencies']:
+		root = ''
+		if i['dep'] == 'ROOT':
+			root = i['dependentGloss']
+			break
+
+	#se nn la trovo (possibile?) -> error
+	if root == '':
+		if debug:
+			print('Non esiste una root')
+		return mapped_frame
+
+	#altrimenti
+	#cerco la root all'interno della lista dei verbi
+	for v in verbs:
+		if v[0] == root:
+			v.append(1)
+		else:
+			v.append(0)
+
+	#elimino tutti i verbi tranne la root
+	verbs = [i[:-1] for i in verbs if i[-1] != 0]
+
+	#se non c'è più nulla nella lista dei verbi -> error
+	if len(verbs) == 0:
+		if debug:
+			print('La root non è un verbo')
+		return mapped_frame
+
+	#altrimenti
+	#mappo root -> frame [tramite lu_v]
+	frame_to_verb = {}
+	frame_to_verb['*'] = verbs[0]
+	for v in verbs:
+		for f in frames:
+			if v[1] in f['lu_v']:
+				frame_to_verb[f['name']] = v
+
+
+	if len(frame_to_verb) == 0:
+		if debug:
+			print('La root non è in lu_v di nessun frame')
+		return mapped_frame
+
+	if debug:
+		pprint(frame_to_verb)
+
+	
+	#=====================SOSTANTIVI - CORE ELEMENTS MAPPING CON FRAME CLASSIFICATION DEFINITIVA========================
+
+	#trovo gli indici di tutti i det o nummod
+	start = [['',0,'',0]]
+	orig_sen_annotations_list['sentences'][0]['basic-dependencies'].sort(key=lambda x: x['dependent'])
+
+	for index,i in enumerate(orig_sen_annotations_list['sentences'][0]['basic-dependencies']):
+		if i['dep'] == 'det' or i['dep'] == 'nummod':
+			if i['governorGloss'] == start[-1][2]:
+				start[-1] = [i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']]
+			else:
+				start.append([i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']])
+
+	start.append(['',index+2,'',0])
+	start = start[1:]
+
+	#se non c'è alcun det o nummod -> error
+	if len(start) == 1:
+		if debug:
+			print('Errore articoli')
+		return mapped_frame
+
+	#altrimenti
+	#estraggo dalla frase tutto ciò che è compreso tra gli index dei det/nummod consecutivamente fino alla fine
+	#le possibili MWE o anche SWE
+	segment_ranges = [(start[i][1],start[i+1][1])for i in range(len(start)-1)]
+
+	segment_lists = [orig_sen_words_list[i[0]-1:i[1]-1] for i in segment_ranges]
+
+
+	#mappo MWE (non unite) o SWE -> frame [tramite lu_s]
+	frame_to_nouns = {'*':[]}
+	for seg in segment_lists:
+		check = False
+		internal_words_list = [word for index,word in enumerate(seg) if index != 0 and '_*' not in word]
+		internal_words_string = ' '.join(internal_words_list)
+
+		#lemmatization-------------------------
+		for index,t in enumerate([internal_words_string]):
+			response = requests.get(tint_url+'text='+'un '+t+'&format=json')
+			annotations = json.loads(response.text)
+			lemmatized = []
+			for i in annotations['sentences'][0]['tokens'][1:]:
+				lemmatized.append(i['lemma'])
+			
+			internal_words_string_lemma = ' '.join(lemmatized)
+		#--------------------------------------
+
+		for f in frames:
+			for lex in f['lu_s']:
+				if internal_words_string_lemma == lex:
+					check=True
+					if f['name'] not in frame_to_nouns:
+						frame_to_nouns[f['name']] = [[seg[0],internal_words_string]]
+					else:
+						frame_to_nouns[f['name']].append([seg[0],internal_words_string])
+
+		if not check:
+			frame_to_nouns['*'].append([seg[0],internal_words_string])
+
+	if len(frame_to_nouns) == 1 and len(frame_to_nouns['*']) == 0:
+		if debug:
+			print('Non ci sono internal words')
+		return mapped_frame
+	
+	if debug:
+		pprint(frame_to_nouns)
+
+
+	quantity_to_token = {1:[',','un',"un'",'uno','una','gli','il','i','le','la'],
+						 2:['due'],
+						 3:['tre'],
+						 4:['quattro']}
+
+	token_to_quantity = {t:k for k,v in quantity_to_token.items() for t in v}
+
+	#incrocio frame_to_verbs e frame_to_nouns
+	#e ottengo il matching finale tra i verbi e le internal words
+	#riempio finamente mapped_frame
+	for k1 in frame_to_verb.keys():
+		for k2 in frame_to_nouns.keys():
+			if k1 == k2:
+				for n in frame_to_nouns[k2]:
+					mapped_frame.append([k1,frame_to_verb[k1][1],token_to_quantity[n[0]],n[1]])
+
+	if debug:
+		pprint(mapped_frame)
+
+
+	return mapped_frame
+
+
 def inputframe_suc(args):
 	curr_input = args[0]
 	successors_list = args[1]
@@ -46,222 +215,31 @@ def inputframe_suc(args):
 		if i['in'] not in frames and i['in'] != '':
 			frames.append(i['in'])
 
-	tint_url = "http://localhost:8012/tint?"
-	response = requests.get(tint_url+'text='+curr_input+'&format=json')
-	annotations = json.loads(response.text)
-	original_annotations = annotations
-
-	if debug:
-		print(curr_input)
-	#============================== STEP 1 - FRAME CLASSIFICATION =================================
-
-	#retrieve all keywords l.u.s (verbs and nouns) in the sentence
-	pos_verb = ['V','V+PC','VM']
-	pos_nouns = ['S','A']
-	verbs = [[token['lemma'],token['index']] for token in annotations['sentences'][0]['tokens'] if token['pos'] in pos_verb]
-	#nouns = [[token['lemma'],token['index']] if for token in annotations['sentences'][0]['tokens'] if token['pos'] in pos_nouns]
-
-
-	nouns = []
-	for token in annotations['sentences'][0]['tokens']:
-		succeded = False
-		if token['pos'] in pos_nouns:
-			if 'features' in token:
-				if 'Number'in token['features']:
-					succeded = True
-					if token['features']['Number'][0] == 'Plur':
-						nouns.append([token['lemma'],token['index']])
-					else:
-						nouns.append([token['word'],token['index']])
-			if not succeded:
-				nouns.append([token['word'],token['index']])
-	if debug:
-		print()
-		print(nouns)
-
-	#map verb -> frame
-	frame_to_verb = {}
-	for v in verbs:
-		for f in frames:
-			if v[0] in f['lu_v']:
-				frame_to_verb[f['name']] = [v]
-
-	#map noun -> frame
-	frame_to_nouns = {}
-	for n in nouns:
-		for f in frames:
-			for lu in f['lu_s']:
-				if n[0] in lu:
-					index_in_lu = lu.split().index(n[0])
-					n_aug = n+[index_in_lu]
-					if f['name'] not in frame_to_nouns:
-						frame_to_nouns[f['name']] = {lu:[n_aug]}
-					else:
-						if lu not in frame_to_nouns[f['name']]:
-							frame_to_nouns[f['name']][lu] = [n_aug]
-						else:
-							frame_to_nouns[f['name']][lu].append(n_aug)
-
-	#resolve multi word-match
-	for f,n in frame_to_nouns.items():
-		for lu,m in n.items():
-			if len(m) > 1:
-				for i in range(len(m)):
-					for j in range(i+1,len(m)):
-						if (m[i][1]-m[j][1]) == (m[i][2]-m[j][2]):
-							n[lu] = [[lu.split()[0], (m[i][1],m[j][1]),(m[i][2],m[j][2]),FSA_config.menulbllemma_to_id[lu]]]
-
-
-	#resolve partial match
-	pm = {}
-	for f,n in frame_to_nouns.items():
-		for lu,m in n.items():
-			for i in m:
-				if i[0] not in pm:
-					pm[i[0]] = 1
-				else:
-					pm[i[0]] +=1
-
-	#final mapping
-	surface_to_frame = {k:{'verb':v} for k,v in frame_to_verb.items()}
-	for f,n in frame_to_nouns.items():
-		if f not in surface_to_frame:
-			surface_to_frame[f] = {'nouns':[]}
-		else:
-			surface_to_frame[f]['nouns'] = []
-		for k,v in n.items():
-			surface_to_frame[f]['nouns'].append(tuple(v[0]+[pm[v[0][0]]]))
-		surface_to_frame[f]['nouns'] = list(set(surface_to_frame[f]['nouns']))
-
-	#lu list
-	keywords = {}
-	for k,v in surface_to_frame.items():
-		if 'verb' in v and 'nouns' in v:
-			keywords[v['verb'][0][0]] = {'type':'v','info':v['verb'][0][1]}
-			for n in v['nouns']:
-				keywords[n[0]] = {'type':'n', 'info':(n[1],n[2],n[3])}
-	if debug:
-		print()
-		pprint(frame_to_verb)
-		print()
-		pprint(frame_to_nouns)
-		print()
-		pprint(surface_to_frame)
-		print()
-		print('K',keywords)
-
-	#===============================================================================================
-	#============================== STEP 2 - CORE ELEMENTS MAPPING =================================
-	import numpy as np
-
-	original_list = []
-	pos_det = ['N','RD','RI','D']
-
-	for index,token in enumerate(original_annotations['sentences'][0]['tokens']):
-		succeded = False
-		if token['pos'] in pos_nouns:
-			if 'features' in token:
-				if 'Number'in token['features']:
-					succeded = True
-					if token['features']['Number'][0] == 'Plur':
-						original_list.append(token['lemma'])
-					else:
-						original_list.append(token['word'])
-			if not succeded:
-				original_list.append(token['word'])
-		elif token['pos'] in pos_verb:
-			original_list.append(token['lemma'])
-		elif token['pos'] in pos_det:
-			original_list.append(token['word']+'_'+token['pos'])
-		else:
-			original_list.append(token['word']+'_'+token['pos'])
-
-		if original_list[index] in keywords:
-			original_list[index]+='_'+keywords[original_list[index]]['type']
-		elif '_' not in original_list[index]:
-			original_list[index]+='_u'
-
-
-	#create artificial list multi-word to one-word
-	forbidden_intervals = []
-	for k_values in keywords.values():
-		if k_values['type'] == 'n':
-			if type(k_values['info'][0]) is tuple:
-				forbidden_intervals.append(k_values['info'][0])
+	mapped_frame = frame_mapping(curr_input,frames)
 	
-	artificial_list = []
-	for index,t in enumerate(original_list):
-		allowed=True
-		for inter in forbidden_intervals:
-			if index in range(inter[0]+1,inter[1]):
-				allowed=False
-		if t[t.find('_')+1:] in ['n','v']+pos_det and allowed:
-			artificial_list.append(t)
-
-
-	#add commas to artificial list
-	artificial_list_commas = []
-	for t in artificial_list:
-		artificial_list_commas.append(t[:t.find('_')])
-		if t[t.find('_')+1:] == 'n':
-			artificial_list_commas.append(',')
-
-	artificial_list_commas = artificial_list_commas[:-1]
-
-	if debug:
-		print()
-		print('OL',original_list)
-		print()
-		print('AL',artificial_list)
-		print()
-		print('ALC', artificial_list_commas)
-
-	#quantity
-	quantity_to_token = {1:[',','un','uno','una','gli','il','i'],
-						 2:['due'],
-						 3:['tre'],
-						 4:['quattro']}
-
-	token_to_quantity = {t:k for k,v in quantity_to_token.items() for t in v}
-
-	#final mapped frames quantity augmented
-	mapped_frame = []
-	for k,v in surface_to_frame.items():
-		if 'verb' in v and 'nouns' in v:
-			for n in v['nouns']:
-				if artificial_list_commas[artificial_list_commas.index(n[0])-1] in token_to_quantity:
-					q = token_to_quantity[artificial_list_commas[artificial_list_commas.index(n[0])-1]]
-				else:
-					q=1
-				mapped_frame.append([k,q,n])
-	if debug:
-		print()
-		print('MF',mapped_frame)
-
-	#successors
 	applicable_successors = []
-	for f in mapped_frame:
-		for s in successors_list:
-			if state_entails(s,state) and f[0] in s['name']:
-				for i in range(f[1]):
-					applicable_successors.append({'name':s['name'],
-												  'input':f[2],
-												  'priority':FSA[s['name']]['priority']})						
 
-	
+	for f in mapped_frame:
+		if f[0] != '*':
+			for s in successors_list:
+				if state_entails(s,state) and f[0] in s['name']:
+					for i in range(f[2]):
+						applicable_successors.append({'name':s['name'],
+													  'input':f,
+													  'priority':FSA[s['name']]['priority']})
 	if len(applicable_successors) == 0:
 		applicable_successors.append({'name':successors_list[-1]['name'],
 									  'priority':FSA[successors_list[-1]['name']]['priority']})
 
 	return applicable_successors
 
-#TODO
+
 def prenotazione1_exe(args):
 	menu_utils.print_menu(FSA_config.menu)
 
 #TODO
-def pagamento1_tur():
-	turn = ''
+def pagamento1_tur(args):
+	turn = 'calcola il conto'
 	return turn
 
 def ordinazione_mem(args):
@@ -279,7 +257,7 @@ def riepilogo_tur(args):
 
 	turn = []
 	for k,v in count.items():
-		turn += [str(v),FSA_config.id_to_menulbl[k],',']
+		turn += [str(v),k,',']
 	turn = turn[:-1]
 	turn.insert(0,'Hai ordinato')
 
@@ -288,9 +266,9 @@ def riepilogo_tur(args):
 	return turn
 
 #TODO
-def tr_oggetto_tur():
+def tr_oggetto_tur(args):
 	print('trasporto')
 
 #TODO
-def informazione_tur():
-	print('info')
+def informazione_tur(args):
+	print('informazione')

@@ -28,15 +28,14 @@ for index,t in enumerate(lexicon_O):
 menulbllemma_to_id = {t:i for i,t in enumerate(lexicon_O)}
 
 
-
 lexicon_TO = ['menu']
-lexicon_I = ['antipasto','primo','secondo','dolce']
+lexicon_I = ['antipasto','primo','secondo','dolce','antipasti','primi','secondi','dolci']
 lexicon_P = ['conto']
-lexicon_B = ['tavolo','posto']
+lexicon_B = ['tavolo','posto','tavoli','posti']
 
-frames = [{'name':'ORDINAZIONE','lu_v':['ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
+frames = [{'name':'ORDINAZIONE','lu_v':['mangiare','ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
 	   	  {'name':'TR_OGGETTO','lu_v':['portare'],'lu_s':lexicon_TO,'ce':['theme']},
-	   	  {'name':'INFORMAZIONE','lu_v':['essere','avere'],'lu_s':lexicon_I,'ce':['content']},
+	   	  {'name':'INFORMAZIONE','lu_v':['elencare','essere','avere','dire'],'lu_s':lexicon_I,'ce':['content']},
 	   	  {'name':'PAGAMENTO','lu_v':['portare','pagare','saldare'],'lu_s':lexicon_P,'ce':['good']},
 	   	  {'name':'PRENOTAZIONE','lu_v':['essere','prenotare'],'lu_s':lexicon_B,'ce':['services']}]
 
@@ -87,7 +86,11 @@ BENVENUTO = {'eff':'*1*11',
 
 
 BENVENUTO_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
-				 'successors':[{'name':'BENVENUTO'}],
+				 'input':'',
+				 'successors_f':inputframe_suc,
+			  	 'successors':[{'name':'PRENOTAZIONE_1','in':frames[4],'pre':'0****'},
+			  	 			   {'name':'PRENOTAZIONE_0','in':frames[4],'pre':'1****'},
+			  	 			   {'name':'BENVENUTO_UNK','in':'','pre':''}],
 		  	 	 'name':'BENVENUTO_UNK',
 		  	 	 'priority':1
 		  		}
