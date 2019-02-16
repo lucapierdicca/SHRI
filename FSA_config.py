@@ -138,7 +138,14 @@ PAGAMENTO_1 = {'eff':'00000',
 
 
 TAVOLA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
-			  'successors':[{'name':'TAVOLA'}],
+			  'input':'',
+			  'successors_f':inputframe_suc,
+		  	  'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
+		  	 			   {'name':'TR_OGGETTO','in':frames[1],'pre':''},
+		  	 			   {'name':'INFORMAZIONE','in':frames[2],'pre':''},
+		  	 			   {'name':'PAGAMENTO_1','in':frames[3],'pre':'**1**'},
+		  	 			   {'name':'PAGAMENTO_0','in':frames[3],'pre':'**0**'},
+		  	 			   {'name':'TAVOLA_UNK','in':'','pre':''}],
 			  'name':'TAVOLA_UNK',
 			  'priority':1
 		   	 }

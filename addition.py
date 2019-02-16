@@ -276,7 +276,7 @@ def inputframe_suc(args):
 
 #potresti portarmi due piatti di spaghetti alla amatriciana due bruschette al pomodoro e un piatto di tonnarelli alla cacio e pep
 
-sentence = "potresti portarmi due piatti di spaghetti alla amatriciana due bruschette con pomodoro e un piatto di tonnarelli alla cacio e pepe"
+sentence = "potresti portarmi due crocchette di patate e poi un piatto di spaghetti alla amatriciana come primo"
 
 dep_VIZ('0',sentence)
 

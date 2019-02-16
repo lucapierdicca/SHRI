@@ -190,7 +190,7 @@ def frame_mapping(orig_sen_words_string,frames):
 
 	#incrocio frame_to_verbs e frame_to_nouns
 	#e ottengo il matching finale tra i verbi e le internal words
-	#riempio finamente mapped_frame
+	#riempio finalmente mapped_frame
 	for k1 in frame_to_verb.keys():
 		for k2 in frame_to_nouns.keys():
 			if k1 == k2:
