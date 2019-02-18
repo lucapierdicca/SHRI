@@ -33,7 +33,7 @@ lexicon_I = ['antipasto','primo','secondo','dolce','antipasti','primi','secondi'
 lexicon_P = ['conto']
 lexicon_B = ['tavolo','posto','tavoli','posti']
 
-frames = [{'name':'ORDINAZIONE','lu_v':['mangiare','ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
+frames = [{'name':'ORDINAZIONE','lu_v':['potere','mangiare','ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
 	   	  {'name':'TR_OGGETTO','lu_v':['portare'],'lu_s':lexicon_TO,'ce':['theme']},
 	   	  {'name':'INFORMAZIONE','lu_v':['elencare','essere','avere','dire'],'lu_s':lexicon_I,'ce':['content']},
 	   	  {'name':'PAGAMENTO','lu_v':['portare','pagare','saldare'],'lu_s':lexicon_P,'ce':['good']},
