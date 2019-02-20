@@ -2,7 +2,7 @@
 <menu>
 	<antipasti>
 		<antipasto>
-			<nome>Bruschetta con pomodoro</nome>
+			<nome>Bruschetta al pomodoro</nome>
 			<prezzo>2.50</prezzo>
 		</antipasto>
 		<antipasto>
@@ -10,7 +10,7 @@
 			<prezzo>2.50</prezzo>
 		</antipasto>
 		<antipasto>
-			<nome>Bruschetta con olive</nome>
+			<nome>Bruschetta alle olive</nome>
 			<prezzo>3.00</prezzo>
 		</antipasto>
 		<antipasto>
@@ -22,7 +22,7 @@
 			<prezzo>3.00</prezzo>
 		</antipasto>
 		<antipasto>
-			<nome>Olive ascolane</nome>
+			<nome>Oliva ascolana</nome>
 			<prezzo>3.50</prezzo>
 		</antipasto>
 	</antipasti>
@@ -46,12 +46,20 @@
 	</primi>
 	<secondi>
 		<secondo>
-			<nome>Filetto</nome>
+			<nome>Filetto al pepe verde</nome>
 			<prezzo>12.00</prezzo>
 		</secondo>
 		<secondo>
-			<nome>Bistecca</nome>
+			<nome>Bistecca di manzo</nome>
 			<prezzo>7.00</prezzo>
+		</secondo>
+		<secondo>
+			<nome>Saltimbocca alla romana</nome>
+			<prezzo>6.00</prezzo>
+		</secondo>
+		<secondo>
+			<nome>Abbacchio al forno</nome>
+			<prezzo>9.00</prezzo>
 		</secondo>
 	</secondi>
 	<bevande>
@@ -60,7 +68,7 @@
 			<prezzo>1.00</prezzo>
 		</bevanda>
 		<bevanda>
-			<nome>Acqua minerale</nome>
+			<nome>Acqua frizzante</nome>
 			<prezzo>2.00</prezzo>
 		</bevanda>
 		<bevanda>
@@ -69,6 +77,10 @@
 		</bevanda>
 		<bevanda>
 			<nome>Vino bianco</nome>
+			<prezzo>3.00</prezzo>
+		</bevanda>
+		<bevanda>
+			<nome>Vino rosso</nome>
 			<prezzo>3.00</prezzo>
 		</bevanda>
 	</bevande>
@@ -80,6 +92,10 @@
 		<dolce>
 			<nome>Gelato</nome>
 			<prezzo>5.50</prezzo>
+		</dolce>
+		<dolce>
+			<nome>Crostata di albicocche</nome>
+			<prezzo>6.00</prezzo>
 		</dolce>
 	</dolci>
 </menu>

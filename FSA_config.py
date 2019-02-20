@@ -28,10 +28,10 @@ for index,t in enumerate(lexicon_O):
 menulbllemma_to_id = {t:i for i,t in enumerate(lexicon_O)}
 
 
-lexicon_TO = ['menu']
-lexicon_I = ['antipasto','primo','secondo','dolce','antipasti','primi','secondi','dolci']
+lexicon_TO = ['menu','forchetta','coltello']
+lexicon_I = ['antipasto','primo','secondo','dolce']
 lexicon_P = ['conto']
-lexicon_B = ['tavolo','posto','tavoli','posti']
+lexicon_B = ['tavolo','posto']
 
 frames = [{'name':'ORDINAZIONE','lu_v':['potere','mangiare','ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
 	   	  {'name':'TR_OGGETTO','lu_v':['portare'],'lu_s':lexicon_TO,'ce':['theme']},
