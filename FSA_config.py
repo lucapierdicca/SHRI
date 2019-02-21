@@ -159,6 +159,12 @@ ORDINAZIONE = {'eff':'**1**',
 				}
 
 
+ORDINAZIONE_ITER = {}
+
+ORDINAZIONE_CONFERMA = {}
+
+
+
 RIEPILOGO = {'turn':riepilogo_tur,
 			 'successors':[{'name':'ATTESA'}],
 			 'name':'RIEPILOGO',

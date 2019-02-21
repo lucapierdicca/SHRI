@@ -69,10 +69,15 @@ def dep_VIZ(file_id,text):
 	pil_im.show()
 
 
-def dep_check(struct,obj,list_dict):
+def dep_check(struct,obj_index,augm_annotations):
 
-    forb_dep = ['case','conj','det']
-    path = [i['dependentGloss'] for i in list_dict if i['governorGloss'] == obj and i['dep'] not in forb_dep]
+
+    #forb_dep = ['case','conj','det']
+    #path = [i['dependentGloss'] for i in list_dict if i['governorGloss'] == obj and i['dep'] not in forb_dep]
+
+    path = []
+    dfs(augm_annotations[obj_index-1],augm_annotations,path)
+    path = [i['lemma'] for i in path if i['dep'] != 'case']
 
     for k,v in struct.items():
         for i in path:
@@ -119,7 +124,8 @@ def augment_annotations(t):
 				succ.append({'dependentGloss':ult_dict[j]['dependentGloss'],
                     'dep':ult_dict[j]['dep'],
                     'dependent':ult_dict[j]['dependent'],
-                    'own_index':j})
+                    'own_index':j,
+                    'lemma':ult_dict[j]['lemma']})
 		ult_dict[i]['succ'] = list(succ)
 
 	return ult_dict
@@ -254,8 +260,11 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	#preprocessa la frase originale
 	if list(frame_to_verb)[0] == 'ORDINAZIONE':
 		standard_root = 'portami '
-	#standard_root = frame_to_verb[list(frame_to_verb)[1]][1]+' '
+	else:
+		standard_root = frame_to_verb[list(frame_to_verb)[0]][1]+' '
+
 	prep_sen_words_string = preprocessing(orig_sen_words_string,standard_root)
+	
 	
 	if debug:
 		dep_VIZ('0',prep_sen_words_string)
@@ -263,12 +272,12 @@ def frame_mapping(orig_sen_words_string,frames_out):
 
 
 	# dizionario aumentato della frase
-	dict_list = augment_annotations(prep_sen_words_string)
+	prep_sen_ann_list = augment_annotations(prep_sen_words_string)
 
 	#trovo gli indici di tutti i det o nummod
 	start = [['',0,'',0]]
 
-	for index,i in enumerate(dict_list):
+	for index,i in enumerate(prep_sen_ann_list):
 		if i['dep'] == 'det' or i['dep'] == 'nummod':
 			if i['governorGloss'] == start[-1][2]:
 				start[-1] = [i['dep'],i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']]
@@ -287,7 +296,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	#altrimenti
     #trova la root
 	root=''
-	for i in dict_list:
+	for i in prep_sen_ann_list:
 		if i["dep"] == "ROOT":
 			root = i["dependentGloss"]
 			print("root --> ", root)
@@ -299,11 +308,11 @@ def frame_mapping(orig_sen_words_string,frames_out):
 
     # cerca il dobj
 	obj_lemma = ''
-	for i in dict_list:
+	for i in prep_sen_ann_list:
 		if (i["governorGloss"] == root and (i["dep"] == "dobj" or i["dep"] == "xcomp")):
 			obj = i["dependentGloss"]
 			obj_lemma = i["lemma"]
-			obj_index = i["dependent"]
+			obj_sen_index = i["dependent"]
 			print("obj ->", obj,  "-- lemma ->", obj_lemma)
     
     # se non c'è il dobj -> error                     
@@ -328,31 +337,53 @@ def frame_mapping(orig_sen_words_string,frames_out):
 		print('\n'+str(1))
 		pprint(struct)         
         
+	#aggiorno la struttura in caso di MWE elastiche che rispettano l'ordine 
+	raccogli = [k for k,v in struct.items() if len(v)>1 and v[0][0] == 1 and v[0][-1] != 1]
 
-    #aggiorno la struttura in caso di MWE rispettata
-	for k,v in struct.items():
-		if len(v)>1 and v[0][-1] != 1 and v[0][0] == 1:
-			inp = augment_annotations(standard_root+' un '+k)
-			temp = {i['lemma']:i['dep'] for i in inp}
-			print(temp)
-			if not (len(dict_list)<len(inp)):
-				for numr, r in enumerate(temp):
-					if numr > 2 and temp[r] != 'case':
-						indice_da_controllare = (obj_index -1 + numr -2)
-						print(indice_da_controllare)
-						for k1,v1 in struct.items():
-							for numi, i in enumerate(augment_annotations(standard_root+' un '+k1)):
-								print(i['lemma'],dict_list[indice_da_controllare]["lemma"] )
-								if numi>1 and i["lemma"] == dict_list[indice_da_controllare]["lemma"] :
-									v1[0][numi-2] =1
+	for k in raccogli:
+		fake_sen_ann_list = augment_annotations(standard_root+' un '+k)[3:]
+		fake_len = len(fake_sen_ann_list)+1
+		fake_sen_ann_list = [i for i in fake_sen_ann_list if i['dep'] != 'case' and i['dep'] != 'det']
+		sliced_prep_sen_ann_list = [i for i in prep_sen_ann_list[obj_sen_index:] if i['dep'] != 'case' and i['dep'] != 'det']
+
+		if len(sliced_prep_sen_ann_list)>0:
+			if fake_sen_ann_list[0]['lemma'] == sliced_prep_sen_ann_list[0]['lemma']:
+				struct[k][0][fake_len-1] = 1
+	
+
+		#fake_temp = {i['lemma']:i['dep'] for i in fake_sen_ann_list}
+		#sliced_temp = {i['lemma']:i['dep'] for i in sliced_prep_sen_ann_list}
+		
+		# if len(sliced_prep_sen_ann_list)>=len(fake_sen_ann_list):
+		# 	sliced_prep_sen_ann_list = sliced_prep_sen_ann_list[:len(fake_sen_ann_list)]
+		# 	for index,(s,f) in enumerate(zip(sliced_prep_sen_ann_list,fake_sen_ann_list)):
+		# 		if s['lemma'] == f['lemma']:
+		# 			struct[k][0][index] = 1
+
+
+	# for k,v in struct.items():
+	# 	if len(v)>1 and v[0][-1] != 1 and v[0][0] == 1:
+	# 		inp = augment_annotations(standard_root+' un '+k)
+	# 		temp = {i['lemma']:i['dep'] for i in inp}
+	# 		print(temp)
+	# 		#if not (len(prep_sen_ann_list)<len(inp)):
+	# 		for numr, r in enumerate(temp):
+	# 			if numr > 2 and temp[r] != 'case':
+	# 				indice_da_controllare = (obj_sen_index -1 + numr -2)
+	# 				print(indice_da_controllare)
+	# 				for k1,v1 in struct.items():
+	# 					for numi, i in enumerate(augment_annotations(standard_root+' un '+k1)):
+	# 						if numi>1 and i["lemma"] == prep_sen_ann_list[indice_da_controllare]["lemma"] :
+	# 							print(i['lemma'],prep_sen_ann_list[indice_da_controllare]["lemma"] )
+	# 							v1[0][numi-2] =1
 
     
 	if debug:
 		print('\n'+str(2))
 		pprint(struct)   
 
-    #aggiorno la struttura in caso di MWE non rispettata
-	dep_check(struct,obj,dict_list)
+    #aggiorno la struttura in caso di MWE elastiche che non rispettano l'ordine
+	dep_check(struct,obj_sen_index,prep_sen_ann_list)
 
 	if debug:
 		print('\n'+str(3))
@@ -406,7 +437,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	token_to_quantity_tr = {t:k for k,v in quantity_to_token_tr.items() for t in v}
 
 	for k,v in frame_to_nouns.items():
-		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA':
+		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='INFORMAZIONE':
 			t = token_to_quantity_ord
 		elif k == 'TR_OGGETTO':
 			t = token_to_quantity_tr
@@ -422,8 +453,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	for k1 in frame_to_verb.keys():
 		for k2 in frame_to_nouns.keys():
 			if k1 in k2:
-				for n in frame_to_nouns[k2]:
-					mapped_frame.append([k2,frame_to_verb[k1][1],n[0],n[1]])
+				mapped_frame.append([k2,frame_to_verb[k1][1],frame_to_nouns[k2]])
 
 	ordinazione_check = False
 	for i in mapped_frame:
@@ -471,7 +501,7 @@ def inputframe_suc(args):
 
 			
 
-sentence = "potresti portarmi due bruschette alle olive"
+sentence = "potresti portarmi una carbonara"
 
 frame_mapping(sentence,frames)
 
