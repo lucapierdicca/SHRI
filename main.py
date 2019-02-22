@@ -10,12 +10,12 @@ def write_memory(curr_state_dict,curr_state):
 	if 'memory' in curr_state:
 		process_f(curr_state['memory'],args=[curr_state_dict])
 
-def text_to_speech(curr_state):
+def text_to_speech(curr_state_dict,curr_state):
 	turn = ''
 	if 'turn' in curr_state:
 		turn = curr_state['turn']
 		if callable(curr_state['turn']):
-			turn = process_f(curr_state['turn'])
+			turn = process_f(curr_state['turn'],args=[curr_state_dict['input']])
 	
 		if debug:
 			print(turn)
@@ -77,17 +77,17 @@ def main():
 	while True:
 
 		priority_sort_frontier()
-		print(frontier)
+		if debug: print(frontier)
 		
 		curr_state_dict = frontier.pop(0)
 		curr_state = FSA[curr_state_dict['name']]
 
 		update_world_state(curr_state)
-		print(''.join(world_state),curr_state['name'])
+		if debug: print(''.join(world_state),curr_state['name'])
 
 		write_memory(curr_state_dict,curr_state)
 
-		text_to_speech(curr_state)
+		text_to_speech(curr_state_dict,curr_state)
 
 		generic_action_exec(curr_state)
 

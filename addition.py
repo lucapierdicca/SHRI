@@ -4,7 +4,6 @@ from pprint import pprint
 from graphviz import Digraph
 from PIL import Image
 from menu_utils import load_menu
-from FSA_config import inputframe_suc
 
 menu = load_menu('menu.xml')
 
@@ -130,7 +129,7 @@ def augment_annotations(t):
 
 	return ult_dict
 
-def preprocessing(text,standard_root):
+def preprocess(text,standard_root):
 
 	#dizionario aumentato della frase
 	augm = augment_annotations(text)
@@ -146,7 +145,11 @@ def preprocessing(text,standard_root):
 		if i['dep'] == 'ROOT':
 			root = i['dependentGloss']
 			root_index = i['dependent']
-			to_be_removed+=[i for i in range(1,root_index+1)]
+			if i['pos'] == 'V':
+				to_be_removed+=[i for i in range(1,root_index+1)]
+			else:
+				to_be_removed+=[i for i in range(1,root_index+1) if (augm[i]['dep'] != 'nummod' and augm[i]['dep'] != 'det') or augm[i]['lemma'] == 'piatto' or augm[i]['lemma']=='porzione']
+				print(to_be_removed)
 		if i['dep'] == 'dobj':
  			dobj = i['lemma']
  			dobj_index = i['dependent']
@@ -239,7 +242,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	#altrimenti
 	#mappo root -> frame [tramite lu_v]
 	frame_to_verb = {}
-	#frame_to_verb['*'] = verbs[0]
+	frame_to_verb['NOIN'] = verbs[0]
 	for v in verbs:
 		for f in frames:
 			if v[1] in f['lu_v']:
@@ -267,7 +270,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	
 	
 	if debug:
-		dep_VIZ('0',prep_sen_words_string)
+		#dep_VIZ('0',prep_sen_words_string)
 		print(prep_sen_words_string)
 
 
@@ -287,6 +290,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	start.append(['',index+2,'',0])
 	start = start[1:]
 	print(start)
+	
 	#se non c'è alcun det o nummod -> error
 	# if len(start) == 1:
 	# 	if debug:
@@ -390,32 +394,43 @@ def frame_mapping(orig_sen_words_string,frames_out):
 		pprint(struct)   
 
 
-	#mappo MWE (non unite) o SWE -> frame [tramite lu_s]
-	frame_to_nouns = {}
+	internal_words_check = 0
 	for k,v in struct.items():
-		if len(v[0])>1:
-			if sum(v[0])>1:
-				if v[1] not in frame_to_nouns:
-					frame_to_nouns[v[1]] = [[start[0][1],k]]
-				else:
-					frame_to_nouns[v[1]].append([start[0][1],k])
-			elif sum(v[0])==1:
-				if v[1]+'_CONFERMA' not in frame_to_nouns:
-					frame_to_nouns[v[1]+'_CONFERMA'] = [[start[0][1],k]]
-				else:
-					frame_to_nouns[v[1]+'_CONFERMA'].append([start[0][1],k])
-		else:
-			if v[0][0] == 1:
-				if v[1] not in frame_to_nouns:
-					frame_to_nouns[v[1]] = [[start[0][1],k]]
-				else:
-					frame_to_nouns[v[1]].append([start[0][1],k])
+		internal_words_check += sum(v[0])
 
 
-	if len(frame_to_nouns) == 0:
-		if debug:
-			print('Non ci sono internal words')
-		return mapped_frame
+	frame_to_nouns = {}
+	if internal_words_check>0:
+		for k,v in struct.items():
+			if len(v[0])>1:
+				if sum(v[0])>1:
+					if v[1] not in frame_to_nouns:
+						frame_to_nouns[v[1]] = [[start[0][1],k]]
+					else:
+						frame_to_nouns[v[1]].append([start[0][1],k])
+				elif sum(v[0])==1:
+					if v[1]+'_CONFERMA' not in frame_to_nouns:
+						frame_to_nouns[v[1]+'_CONFERMA'] = [[start[0][1],k]]
+					else:
+						frame_to_nouns[v[1]+'_CONFERMA'].append([start[0][1],k])
+			else:
+				if v[0][0] == 1:
+					if v[1] not in frame_to_nouns:
+						frame_to_nouns[v[1]] = [[start[0][1],k]]
+					else:
+						frame_to_nouns[v[1]].append([start[0][1],k])
+	else:
+		frame_to_nouns['NOIN'] = [['zero',obj]]
+
+
+
+
+
+	# if len(frame_to_nouns) == 0:
+	# 	frame_to_nouns['*'] = [obj]
+	# 	if debug:
+	# 		print('Non ci sono internal words')
+	# 	return mapped_frame
 	
 
 	if debug:
@@ -437,7 +452,7 @@ def frame_mapping(orig_sen_words_string,frames_out):
 	token_to_quantity_tr = {t:k for k,v in quantity_to_token_tr.items() for t in v}
 
 	for k,v in frame_to_nouns.items():
-		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='INFORMAZIONE':
+		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='INFORMAZIONE' or k=='NOIN':
 			t = token_to_quantity_ord
 		elif k == 'TR_OGGETTO':
 			t = token_to_quantity_tr
@@ -501,8 +516,12 @@ def inputframe_suc(args):
 
 			
 
-sentence = "potresti portarmi una carbonara"
+sentence = "poi due piatti di spaghetti alla amatriciana"
 
-frame_mapping(sentence,frames)
+pprint(preprocess(sentence,'portami '))
+
+#frame_mapping(sentence,frames)
+#print()
+
 
 dep_VIZ('0',sentence)
