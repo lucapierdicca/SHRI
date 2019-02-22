@@ -663,6 +663,7 @@ def ord_iter_frame_mapping(orig_sen_words_string,frames):
 
 	mapped_frame = []
 
+	dobj,dobj_index='',0
 	for i in orig_sen_aug_ann_list:
 		if i['dep']=='ROOT':
 			root = i['dependentGloss']
@@ -694,8 +695,196 @@ def ord_iter_frame_mapping(orig_sen_words_string,frames):
 							internal_word=i['dependentGloss']
 							internal_word_index=i['dependent']
 
+		if internal_word != '':
+			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_aug_ann_list[internal_word_index-1:]])
+		elif dobj != '':
+			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_aug_ann_list[dobj_index-1:]])
+		else:
+			return mapped_frame
 
-		prep_sen_words_string = standard_root+det+' '
+
+	if debug:
+		#dep_VIZ('0',prep_sen_words_string)
+		print(prep_sen_words_string)
+
+
+	# dizionario aumentato della frase
+	prep_sen_ann_list = augment_annotations(prep_sen_words_string)
+
+	#trovo gli indici di tutti i det o nummod
+	start = [['',0,'',0]]
+
+	for index,i in enumerate(prep_sen_ann_list):
+		if i['dep'] == 'det' or i['dep'] == 'nummod':
+			if i['governorGloss'] == start[-1][2]:
+				start[-1] = [i['dep'],i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']]
+			else:
+				start.append([i['dep'],i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']])
+
+	start.append(['','',index+2,'',0])
+	start = start[1:]
+	if debug: print(start)
+	
+	#se non c'è alcun det o nummod -> error
+	# if len(start) == 1:
+	# 	if debug:
+	# 		print('Errore articoli')
+	# 	return mapped_frame
+	
+	#altrimenti
+    #trova la root
+	root=''
+	for i in prep_sen_ann_list:
+		if i["dep"] == "ROOT":
+			root = i["dependentGloss"]
+			print("root --> ", root)
+
+	if root=='':
+		print('Errore root preprocessed !!!!!!')
+		return 0
+
+
+    # cerca il dobj
+	obj_lemma = ''
+	for i in prep_sen_ann_list:
+		if (i["governorGloss"] == root and (i["dep"] == "dobj" or i["dep"] == "xcomp")):
+			obj = i["dependentGloss"]
+			obj_lemma = i["lemma"]
+			obj_sen_index = i["dependent"]
+			print("obj ->", obj,  "-- lemma ->", obj_lemma)
+    
+    # se non c'è il dobj -> error                     
+	if obj_lemma is '':
+		if debug:
+			print("Errore dobj")
+		return mapped_frame
+
+
+    # altrimenti
+   	#creo la struttura per l'intero lessico
+	struct = {s:[[0]*len(s.split(' ')),f['name']] for f in frames for s in f['lu_s'] }
+                
+    #aggiorno la struttura in caso di SWE
+	for x in struct.keys():
+		hp_menu_sentence_dict = augment_annotations(standard_root+' un '+x)
+		for numi, i in enumerate(hp_menu_sentence_dict):
+			if numi>1 and i["lemma"] == obj_lemma and i["dep"] != "case" and i["dep"] != "conj":
+				struct[x][0][numi-2] +=1
+
+	if debug:
+		print('\n'+str(1))
+		pprint(struct)         
+        
+	#aggiorno la struttura in caso di MWE elastiche che rispettano l'ordine 
+	raccogli = [k for k,v in struct.items() if len(v)>1 and v[0][0] == 1 and v[0][-1] != 1]
+
+	for k in raccogli:
+		fake_sen_ann_list = augment_annotations(standard_root+' un '+k)[3:]
+		fake_len = len(fake_sen_ann_list)+1
+		fake_sen_ann_list = [i for i in fake_sen_ann_list if i['dep'] != 'case' and i['dep'] != 'det']
+		sliced_prep_sen_ann_list = [i for i in prep_sen_ann_list[obj_sen_index:] if i['dep'] != 'case' and i['dep'] != 'det']
+
+		if len(sliced_prep_sen_ann_list)>0:
+			if fake_sen_ann_list[0]['lemma'] == sliced_prep_sen_ann_list[0]['lemma']:
+				struct[k][0][fake_len-1] = 1
+
+    
+	if debug:
+		print('\n'+str(2))
+		pprint(struct)   
+
+    #aggiorno la struttura in caso di MWE elastiche che non rispettano l'ordine
+	dep_check(struct,obj_sen_index,prep_sen_ann_list)
+
+	if debug:
+		print('\n'+str(3))
+		pprint(struct)   
+
+
+	internal_words_check = 0
+	for k,v in struct.items():
+		internal_words_check += sum(v[0])
+	
+	frame_to_nouns = {}
+	if internal_words_check>0:
+		for k,v in struct.items():
+			if len(v[0])>1:
+				if sum(v[0])>1:
+					if v[1] not in frame_to_nouns:
+						frame_to_nouns[v[1]] = [[start[0][1],k]]
+					else:
+						frame_to_nouns[v[1]].append([start[0][1],k])
+				elif sum(v[0])==1:
+					if v[1]+'_CONFERMA' not in frame_to_nouns:
+						frame_to_nouns[v[1]+'_CONFERMA'] = [[start[0][1],k]]
+					else:
+						frame_to_nouns[v[1]+'_CONFERMA'].append([start[0][1],k])
+			else:
+				if v[0][0] == 1:
+					if v[1] not in frame_to_nouns:
+						frame_to_nouns[v[1]] = [[start[0][1],k]]
+					else:
+						frame_to_nouns[v[1]].append([start[0][1],k])
+	else:
+		frame_to_nouns['NOIN'] = [[start[0][1],obj]]
+
+
+	# if len(frame_to_nouns) == 0:
+	# 	frame_to_nouns['*'] = [obj]
+	# 	if debug:
+	# 		print('Non ci sono internal words')
+	# 	return mapped_frame
+	
+
+	if debug:
+		pprint(frame_to_nouns)
+
+	quantity_to_token_ord = {1:['un',"un'",'uno','una','il','la','lo',"l'",'gli','i','le'],
+						 	2:['due'],
+						 	3:['tre'],
+						 	4:['quattro']}
+
+	quantity_to_token_tr = {1:['un',"un'",'uno','una','il','la','lo',"l'"],
+							2:['due'],
+							3:['tre'],
+							4:['quattro']}
+
+	token_to_quantity_ord = {t:k for k,v in quantity_to_token_ord.items() for t in v}
+	token_to_quantity_tr = {t:k for k,v in quantity_to_token_tr.items() for t in v}
+
+	for k,v in frame_to_nouns.items():
+		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='INFORMAZIONE' or k=='NOIN':
+			t = token_to_quantity_ord
+		elif k == 'TR_OGGETTO':
+			t = token_to_quantity_tr
+		for i in v:
+			if i[0] in t:
+				i[0] = t[i[0]]
+			else:
+				i[0] = -1
+
+	#incrocio frame_to_verbs e frame_to_nouns
+	#e ottengo il matching finale tra i verbi e le internal words
+	#riempio finalmente mapped_frame
+	for k1 in frame_to_verb.keys():
+		for k2 in frame_to_nouns.keys():
+			if k1 in k2:
+				mapped_frame.append([k2,frame_to_verb[k1][1],frame_to_nouns[k2]])
+
+	ordinazione_check = False
+	for i in mapped_frame:
+		if i[0] == 'ORDINAZIONE':
+			ordinazione_check=True
+	
+	if ordinazione_check:
+		mapped_frame=[i for i in mapped_frame if i[0] != 'ORDINAZIONE_CONFERMA']
+
+
+	if debug:
+		pprint(mapped_frame)
+
+
+	return mapped_frame	
 
 
 

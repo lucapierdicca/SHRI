@@ -168,7 +168,7 @@ TAVOLA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
 
 ORDINAZIONE = {'eff':'**1**',
 			   'memory':ordinazione_mem,
-			   'successors':[{'name':'RIEPILOGO'}],
+			   'successors':[{'name':'ORDINAZIONE_ITER'}],
 			   'name':'ORDINAZIONE',
 			   'priority':3
 				}
