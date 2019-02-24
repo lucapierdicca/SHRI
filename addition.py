@@ -516,9 +516,9 @@ def inputframe_suc(args):
 
 			
 
-sentence = "poi due piatti di spaghetti alla amatriciana"
+sentence = "potresti elencarmi i primi"
 
-pprint(preprocess(sentence,'portami '))
+#pprint(preprocess(sentence,'portami '))
 
 #frame_mapping(sentence,frames)
 #print()

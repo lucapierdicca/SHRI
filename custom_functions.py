@@ -4,6 +4,7 @@ import json
 from pprint import pprint
 import menu_utils
 import random
+import re
 
 def state_entails(action,state):
 	if action['pre'] != '':
@@ -440,7 +441,7 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	token_to_quantity_tr = {t:k for k,v in quantity_to_token_tr.items() for t in v}
 
 	for k,v in frame_to_nouns.items():
-		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='INFORMAZIONE' or k=='NOIN':
+		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='INFORMAZIONE' or k=='NOIN' or k=='PAGAMENTO':
 			t = token_to_quantity_ord
 		elif k == 'TR_OGGETTO':
 			t = token_to_quantity_tr
@@ -596,7 +597,7 @@ def tavola_suc(args):
 	for f in mapped_frame:
 		this_input = [f[1],f[2]]
 		for s in successors_list:
-			if state_entails(s,state) and f[0] in s['name']:
+			if state_entails(s,state) and f[0] == s['name']:
 				applicable_successors.append({'name':s['name'],
 											  'input':this_input,
 											  'priority':FSA[s['name']]['priority']})
@@ -616,17 +617,23 @@ def pagamento1_tur(args):
 	return turn
 
 def ordinazione_mem(args):
-	curr_state_dict = args[0]
-	FSA_config.short_term.append(curr_state_dict)
-	FSA_config.long_term.append(curr_state_dict)
+	this_input = args[0]
+
+	qta = this_input[1][0][0]
+	piatto = this_input[1][0][1]
+
+	FSA_config.short_term.append([qta,piatto])
+	FSA_config.long_term.append([qta,piatto])
 
 def riepilogo_tur(args):
 	count = {}
-	for state_dict in FSA_config.short_term:
-		if state_dict['input'][3] not in count:
-			count[state_dict['input'][3]] = 1
+	for ordine in FSA_config.short_term:
+		qta = ordine[0]
+		piatto = ordine[1]
+		if piatto not in count:
+			count[piatto] = qta
 		else:
-			count[state_dict['input'][3]]+= 1
+			count[piatto]+= qta
 
 	turn = []
 	for k,v in count.items():
@@ -634,9 +641,12 @@ def riepilogo_tur(args):
 	turn = turn[:-1]
 	turn.insert(0,'Hai ordinato')
 
-	turn = ' '.join(turn)+'. Arriviamo subito!'
+	turn = ' '.join(turn)+'. Arrivo subito!'
 
 	return turn
+
+def riepilogo_exe(args):
+	del FSA_config.short_term[:]
 
 #TODO
 def tr_oggetto_tur(args):
@@ -646,22 +656,40 @@ def tr_oggetto_tur(args):
 
 #TODO
 def informazione_tur(args):
-	print('informazione')
+	this_input = args[0]
 
-#TODO
+	portata = this_input[1][0][1]
+	turn=''
+	for k in FSA_config.portata_to_menulbl.keys():
+		if portata == augment_annotations('i '+k)[1]['lemma']:
+			turn = 'I '+k+' sono '+', '.join(FSA_config.portata_to_menulbl[k][:-1])+' e '+FSA_config.portata_to_menulbl[k][-1]
+	
+	return turn
+
 def ord_iter_tur(args):
-	turns = ['Sì, poi?','Ok, poi?','Sì certo, poi?']
+	this_input = args[0]
+	turns = ['Sì, poi?','Ok, poi?','Sì certo, e dopo?']
 	index = random.randint(0,len(turns)-1)
 
 	return turns[index]
 
-#TODO
+
 def ord_iter_frame_mapping(orig_sen_words_string,frames):
 
-	orig_sen_words_string = curr_input
+	regexes = [i for i in frames if 'regex' in i]
+	frames = [i for i in frames if 'lu_s' in i]
+
 	orig_sen_aug_ann_list = augment_annotations(orig_sen_words_string)
 
 	mapped_frame = []
+
+	print(frames)
+
+	m = re.search(regexes[0]['regex'], orig_sen_words_string)
+
+	if m is not None:
+		mapped_frame.append(['RIEPILOGO','',''])
+		return mapped_frame
 
 	dobj,dobj_index='',0
 	for i in orig_sen_aug_ann_list:
@@ -675,6 +703,8 @@ def ord_iter_frame_mapping(orig_sen_words_string,frames):
 
 	standard_root = 'portami '
 
+	frame_to_verb = {'NOIN': ['portami', 'portare', 1], 'ORDINAZIONE': ['portami', 'portare', 1]}
+
 	if root_pos == 'V':
 		prep_sen_words_string = preprocess(orig_sen_words_string,standard_root)
 	else:
@@ -686,17 +716,19 @@ def ord_iter_frame_mapping(orig_sen_words_string,frames):
 		
 		if det == '': det='un'
 
-		internal_word,internal_word_index = '',0
+		internal_word,internal_word_index = [],[]
 		for i in orig_sen_aug_ann_list:
 			if i['dep'] != 'case' and i['dep'] != 'det':
 				for f in frames:
 					for l in f['lu_s']:
 						if i['lemma'] in ' '.join([i['lemma'] for i in augment_annotations('portami un '+l)]):
-							internal_word=i['dependentGloss']
-							internal_word_index=i['dependent']
+							internal_word.append(i['dependentGloss'])
+							internal_word_index.append(i['dependent'])
 
-		if internal_word != '':
-			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_aug_ann_list[internal_word_index-1:]])
+		print(internal_word_index)
+
+		if len(internal_word) != 0:
+			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_aug_ann_list[internal_word_index[0]-1:]])
 		elif dobj != '':
 			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_aug_ann_list[dobj_index-1:]])
 		else:
@@ -887,7 +919,6 @@ def ord_iter_frame_mapping(orig_sen_words_string,frames):
 	return mapped_frame	
 
 
-
 def ord_iter_succ(args):
 	curr_input = args[0]
 	successors_list = args[1]
@@ -906,7 +937,7 @@ def ord_iter_succ(args):
 	for f in mapped_frame:
 		this_input = [f[1],f[2]]
 		for s in successors_list:
-			if state_entails(s,state) and f[0] in s['name']:
+			if state_entails(s,state) and f[0] == s['name']:
 				applicable_successors.append({'name':s['name'],
 											  'input':this_input,
 											  'priority':FSA[s['name']]['priority']})
@@ -924,9 +955,29 @@ def ord_conf_tur(args):
 def ord_conf_succ(args):
 	return 0
 
-#TODO
+
 def help_succ(args):
-	return 0
+	curr_input = args[0]
+	successors_list = args[1]
+	FSA = args[2]
+	state = args[3]
+
+	this_input = curr_input
+	
+	applicable_successors = []
+
+	for s in successors_list:
+		if s['in'] != '':
+			if state_entails(s,state) and re.search(s['in']['regex'],curr_input ) != None:
+				applicable_successors.append({'name':s['name'],
+											  'input':this_input,
+											  'priority':FSA[s['name']]['priority']})
+	if len(applicable_successors) == 0:
+		applicable_successors.append({'name':successors_list[-1]['name'],
+									  'priority':FSA[successors_list[-1]['name']]['priority']})
+
+	return applicable_successors
+
 
 def benvenuto_succ(args):
 	curr_input = args[0]

@@ -10,6 +10,12 @@ menu = load_menu('menu.xml')
 lexicon_O = [v['nome'].lower() for v in menu.values()]
 
 menulbl_to_id = {t:i for i,t in enumerate(lexicon_O)}
+portata_to_menulbl={}
+for k,v in menu.items():
+	if v['tipo'] not in portata_to_menulbl:
+		portata_to_menulbl[v['tipo']] = [k.lower()]
+	else:
+		portata_to_menulbl[v['tipo']].append(k.lower())
 id_to_menulbl = {v:k for k,v in menulbl_to_id.items()}
 id_to_prezzo = {i:v['prezzo'] for i,v in enumerate(menu.values())}
 
@@ -35,7 +41,7 @@ lexicon_P = ['conto']
 frames = [{'name':'ORDINAZIONE','lu_v':['potere','mangiare','ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
 	   	  {'name':'TR_OGGETTO','lu_v':['portare'],'lu_s':lexicon_TO,'ce':['theme']},
 	   	  {'name':'INFORMAZIONE','lu_v':['elencare','essere','avere','dire'],'lu_s':lexicon_I,'ce':['content']},
-	   	  {'name':'PAGAMENTO','lu_v':['portare','pagare','saldare'],'lu_s':lexicon_P,'ce':['good']}]
+	   	  {'name':'PAGAMENTO','lu_v':['porgere','portare','pagare','saldare'],'lu_s':lexicon_P,'ce':['good']}]
 
 
 short_term = []
@@ -53,7 +59,7 @@ ATTESA = {'eff':'***00',
 		  'successors':[{'name':'BENVENUTO','pre':'','in':'E'},
 		  				{'name':'TAVOLA','in':'T','pre':'1****'},
 		  				{'name':'SALA_VUOTA','in':'T','pre':'0****'},
-		  				{'name':'ATTESA_UNK','in':'','pre':''}],
+		  				{'name':'ATTESA','in':'','pre':''}],
 		  'name':'ATTESA',
 		  'priority':1
 		 }
@@ -179,7 +185,7 @@ ORDINAZIONE_ITER = {'turn':ord_iter_tur, #random choice fra alcune frasi del tip
 					'successors_f':ord_iter_succ, #simile a inputframe_succ ma con la root fissa a "portami un" perchè è prevista solo l'ordinazione!!!
 					'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
 		  	  					  {'name':'ORDINAZIONE_CONFERMA','in':frames[0],'pre':''},
-		  	  					  {'name':'RIEPILOGO','in':'(no.*|.*basta.*|.*no basta.*)','pre':''},
+		  	  					  {'name':'RIEPILOGO','in':{'regex':'(.*no.*|.*basta.*|.*no basta.*)'},'pre':''},
 		  	  					  {'name':'ORDINAZIONE_ITER_UNK','in':'','pre':''}],
 		  	  		'name':'ORDINAZIONE_ITER',
 		  	  		'priority':1
@@ -191,6 +197,7 @@ ORDINAZIONE_ITER_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
 						'successors_f':ord_iter_succ, #simile a inputframe_succ ma con la root fissa a "portami un" perchè è prevista solo l'ordinazione!!!
 						'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
 			  	  					  {'name':'ORDINAZIONE_CONFERMA','in':frames[0],'pre':''},
+			  	  					  {'name':'RIEPILOGO','in':{'regex':'(.*no.*|.*basta.*|.*no basta.*)'},'pre':''},
 			  	  					  {'name':'ORDINAZIONE_ITER_UNK','in':'','pre':''}],
 			  	  		'name':'ORDINAZIONE_ITER',
 			  	  		'priority':1
@@ -217,6 +224,7 @@ ORDINAZIONE_CONFERMA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere
 
 
 RIEPILOGO = {'turn':riepilogo_tur,
+			 'exec':riepilogo_exe,
 			 'successors':[{'name':'HELP'}],
 			 'name':'RIEPILOGO',
 			 'priority':2
@@ -225,8 +233,8 @@ RIEPILOGO = {'turn':riepilogo_tur,
 HELP = {'turn':'Posso fare altro?',
 		'input':'',
 		'successors_f':help_succ,
-		'successors':[{'name':'ATTESA','in':'no.*','pre':''},
-		  	  			{'name':'TAVOLA','in':'si.*','pre':''},
+		'successors':[{'name':'ATTESA','in':{'regex':'(no.*|(no|) puoi andare.*)'},'pre':''},
+		  	  			{'name':'TAVOLA','in':{'regex':'si.*'},'pre':''},
 		  	  			{'name':'HELP_UNK','in':'','pre':''}],
 		'name':'HELP',
 		'priority':1
@@ -235,8 +243,8 @@ HELP = {'turn':'Posso fare altro?',
 HELP_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
 			'input':'',
 			'successors_f':help_succ,
-			'successors':[{'name':'ATTESA','in':'si.*','pre':''},
-			  	  			{'name':'TAVOLA','in':'no.*','pre':''},
+			'successors':[{'name':'ATTESA','in':{'regex':'no.*'},'pre':''},
+			  	  			{'name':'TAVOLA','in':{'regex':'si.*'},'pre':''},
 			  	  			{'name':'HELP_UNK','in':'','pre':''}],
 			'name':'HELP_UNK',
 			'priority':1

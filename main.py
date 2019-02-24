@@ -8,7 +8,7 @@ def update_world_state(curr_state):
 
 def write_memory(curr_state_dict,curr_state):
 	if 'memory' in curr_state:
-		process_f(curr_state['memory'],args=[curr_state_dict])
+		process_f(curr_state['memory'],args=[curr_state_dict['input']])
 
 def text_to_speech(curr_state_dict,curr_state):
 	turn = ''
@@ -45,7 +45,8 @@ def retrieve_successors(curr_input,curr_state):
 		successors = process_f(curr_state['successors_f'], args=[curr_input,curr_state['successors'],FSA,world_state])
 	else:
 		successors = [{'name':curr_state['successors'][0]['name'],
-					  'priority':FSA[curr_state['successors'][0]['name']]['priority']}]
+						'input':'',
+					  	'priority':FSA[curr_state['successors'][0]['name']]['priority']}]
 	return successors
 
 
