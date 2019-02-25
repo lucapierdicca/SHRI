@@ -1,16 +1,19 @@
 from FSA_config import FSA,world_state
 
-def update_world_state(curr_state):
+def update_world_state(curr_state_dict):
+	curr_state = FSA[curr_state_dict['name']]
 	if 'eff' in curr_state:
 		for i in range(len(curr_state['eff'])):
 			if curr_state['eff'][i] != '*':
 				world_state[i] = curr_state['eff'][i]
 
-def write_memory(curr_state_dict,curr_state):
+def write_memory(curr_state_dict):
+	curr_state = FSA[curr_state_dict['name']]
 	if 'memory' in curr_state:
 		process_f(curr_state['memory'],args=[curr_state_dict['input']])
 
-def text_to_speech(curr_state_dict,curr_state):
+def text_to_speech(curr_state_dict):
+	curr_state = FSA[curr_state_dict['name']]
 	turn = ''
 	if 'turn' in curr_state:
 		turn = curr_state['turn']
@@ -26,7 +29,8 @@ def text_to_speech(curr_state_dict,curr_state):
 def speak(turn):
 	return 0
 
-def speech_to_text(curr_state):
+def speech_to_text(curr_state_dict):
+	curr_state = FSA[curr_state_dict['name']]
 	if 'input' in curr_state:
 		if not debug:
 			if curr_state['input'] == '':
@@ -40,7 +44,9 @@ def speech_to_text(curr_state):
 def hear():
 	return 0
 
-def retrieve_successors(curr_input,curr_state):
+def retrieve_successors(curr_input,curr_state_dict):
+	curr_state = FSA[curr_state_dict['name']]
+
 	if 'successors_f' in curr_state:
 		successors = process_f(curr_state['successors_f'], args=[curr_input,curr_state['successors'],FSA,world_state])
 	else:
@@ -50,7 +56,8 @@ def retrieve_successors(curr_input,curr_state):
 	return successors
 
 
-def generic_action_exec(curr_state):
+def generic_action_exec(curr_state_dict):
+	curr_state = FSA[curr_state_dict['name']]
 	if 'exec' in curr_state:
 		process_f(curr_state['exec'])
 
@@ -81,20 +88,20 @@ def main():
 		if debug: print(frontier)
 		
 		curr_state_dict = frontier.pop(0)
-		curr_state = FSA[curr_state_dict['name']]
+		#curr_state = FSA[curr_state_dict['name']]
 
-		update_world_state(curr_state)
-		if debug: print(''.join(world_state),curr_state['name'])
+		update_world_state(curr_state_dict)
+		if debug: print(''.join(world_state),curr_state_dict['name'])
 
-		write_memory(curr_state_dict,curr_state)
+		write_memory(curr_state_dict)
 
-		text_to_speech(curr_state_dict,curr_state)
+		text_to_speech(curr_state_dict)
 
-		generic_action_exec(curr_state)
+		generic_action_exec(curr_state_dict)
 
-		curr_input = speech_to_text(curr_state)
+		curr_input = speech_to_text(curr_state_dict)
 
-		successors = retrieve_successors(curr_input,curr_state)
+		successors = retrieve_successors(curr_input,curr_state_dict)
 
 		frontier += [s for s in successors if s not in frontier]
 

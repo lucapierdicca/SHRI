@@ -516,7 +516,9 @@ def inputframe_suc(args):
 
 			
 
-sentence = "potresti elencarmi i primi"
+sentence = "sì vorrei ordinare gli spaghetti"
+
+#pprint(augment_annotations(sentence))
 
 #pprint(preprocess(sentence,'portami '))
 

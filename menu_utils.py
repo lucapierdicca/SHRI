@@ -8,11 +8,11 @@ def load_menu(path):
 	
 	for i in portate:
 		for e in root.findall('./'+i+'/'):
-			nome = e.find('nome').text
+			nome = e.find('nome').text.lower()
 			prezzo = float(e.find('prezzo').text)
 
 			menu[nome] = {'tipo':i,
-						  'nome':nome,
+						  'nome':nome.lower(),
 						  'prezzo':prezzo}
 	return menu
 
