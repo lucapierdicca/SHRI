@@ -218,7 +218,7 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	if orig_sen_words_string == '' or orig_sen_words_string == None:
 		return mapped_frame
 
-	if re.search('(no.*|basta così.*|puoi andare.*)',orig_sen_words_string) != None:
+	if re.search('(^no.*|basta così.*|puoi andare.*)',orig_sen_words_string) != None:
 		mapped_frame.append(['RIEPILOGO','',''])
 		return mapped_frame
 

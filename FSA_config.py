@@ -9,29 +9,13 @@ menu = load_menu('menu.xml')
 
 lexicon_O = [v['nome'].lower() for v in menu.values()]
 
-menulbl_to_id = {t:i for i,t in enumerate(lexicon_O)}
+
 portata_to_menulbl={}
 for k,v in menu.items():
 	if v['tipo'] not in portata_to_menulbl:
 		portata_to_menulbl[v['tipo']] = [k.lower()]
 	else:
 		portata_to_menulbl[v['tipo']].append(k.lower())
-id_to_menulbl = {v:k for k,v in menulbl_to_id.items()}
-id_to_prezzo = {i:v['prezzo'] for i,v in enumerate(menu.values())}
-
-# tint_url = "http://localhost:8012/tint?"
-# for index,t in enumerate(lexicon_O):
-# 	response = requests.get(tint_url+'text='+t+'&format=json')
-# 	annotations = json.loads(response.text)
-# 	splitted = t.split()
-# 	for i in annotations['sentences'][0]['tokens']:
-# 		if 'features' in i:
-# 			if 'Number'in i['features']:
-# 				if i['features']['Number'][0] == 'Plur':
-# 					splitted[i['index']-1] = i['lemma']
-# 					lexicon_O[index] = ' '.join(splitted)
-
-# menulbllemma_to_id = {t:i for i,t in enumerate(lexicon_O)}
 
 
 lexicon_TO = ['menu','forchetta','coltello','bicchiere']
