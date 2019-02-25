@@ -218,13 +218,15 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	if orig_sen_words_string == '' or orig_sen_words_string == None:
 		return mapped_frame
 
-	if re.search('(^no.*|basta così.*|puoi andare.*)',orig_sen_words_string) != None:
+	if re.search('(^no$|^no .*|basta così.*|puoi andare.*)',orig_sen_words_string) != None:
 		mapped_frame.append(['RIEPILOGO','',''])
 		return mapped_frame
 
 
 	#altrimenti fai tutto il resto
 	orig_sen_ann_list = augment_annotations(orig_sen_words_string)
+	if orig_sen_ann_list == 1:
+		return mapped_frame
 
 
 	# ====================VERBI - FRAME CLASSIFICATION PRELIMINARE===================
@@ -527,7 +529,10 @@ def augment_annotations(t):
 	ult_dict = []
 	path = "http://localhost:8012/tint?text=" + t + "&format=json"
 	r=requests.get(path)
-	dicti = json.loads(r.text)
+	try:
+		dicti = json.loads(r.text)
+	except:
+		return 1
     
 	dependencies_list = ["dependentGloss", "dep", "governorGloss", "dependent",'governor']
 	tokens_list = ["lemma", "features", "pos"]
@@ -787,7 +792,7 @@ def ord_conf_succ(args):
 	num_alternative = len(this_input_from_shterm[0])
 
 	if num_alternative == 1:
-		if re.search('si.*',orig_sen_words_string) != None:
+		if re.search('(^si($| .*)|^perfetto( .*|$)|^va (bene|benissimo))',orig_sen_words_string) != None:
 			applicable_successors.append({'name':'ORDINAZIONE',
 										  'input':['portare']+[this_input_from_shterm[0],successors_list[0]['name']],
 										  'priority':FSA[successors_list[0]['name']]['priority']})

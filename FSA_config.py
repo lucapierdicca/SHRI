@@ -19,7 +19,7 @@ for k,v in menu.items():
 
 
 lexicon_TO = ['menu','forchetta','coltello','bicchiere']
-lexicon_I = ['antipasto','primo','secondo','dolce']
+lexicon_I = ['antipasto','primo','secondo','dolcio']
 lexicon_P = ['conto']
 
 frames = [{'name':'ORDINAZIONE','lu_v':['potere','mangiare','ordinare','volere','chiedere','portare','prendere'],'lu_s':lexicon_O,'ce':['entity']},
@@ -256,4 +256,5 @@ FSA = {'ATTESA':ATTESA,
 	   'RIEPILOGO':RIEPILOGO,
 	   'TR_OGGETTO':TR_OGGETTO,
 	   'INFORMAZIONE':INFORMAZIONE,
-	   'ALT':ALT}
+	   'ALT':ALT,
+	   'QTY':QTY}

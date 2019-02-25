@@ -510,7 +510,7 @@ def inputframe_suc(args):
 
 			
 
-sentence = "basta cosi"
+sentence = "potresti elencarmi i primi piatti"
 
 #pprint(augment_annotations(sentence))
 
