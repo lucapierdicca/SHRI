@@ -123,7 +123,7 @@ PRENOTAZIONE_2 = {'eff':'*0*0*',
 				  'priority':1}
 
 TAVOLA = {'eff':'***21',
-			'turn':'Dimmi pure',
+			'turn':tavola_tur,
 			'input':'',
 			'successors_f':tavola_suc,
 		  	 'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
@@ -133,6 +133,7 @@ TAVOLA = {'eff':'***21',
 		  	 			   {'name':'PAGAMENTO','in':frames[3],'pre':''},
 		  	 			   {'name':'QTY','in':'','pre':''},
 		  	 			   {'name':'NOIN','in':'','pre':''},
+		  	 			   {'name':'RIEPILOGO','in':'','pre':''},
 		  	 			   {'name':'TAVOLA_UNK','in':'','pre':''}],
 			'name':'TAVOLA',
 			'priority':1}
@@ -149,6 +150,7 @@ TAVOLA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
 		  	 			    {'name':'PAGAMENTO','in':frames[3],'pre':''},
 		  	 			    {'name':'QTY','in':'','pre':''},
 		  	 			    {'name':'NOIN','in':'','pre':''},
+		  	 			    {'name':'RIEPILOGO','in':'','pre':''},
 		  	 			    {'name':'TAVOLA_UNK','in':'','pre':''}],
 			  'name':'TAVOLA_UNK',
 			  'priority':1}
@@ -156,12 +158,12 @@ TAVOLA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
 
 
 NOIN = {'turn':noin_tur,
-		'successors':[{'name':'ITER'}],
+		'successors':[{'name':'TAVOLA'}],
 		'name':'NOIN',
 		'priority':1}
 
 QTY = {'turn':'Mi dispiace ma ho solo 2 mani',
-		'successors':[{'name':'ITER'}],
+		'successors':[{'name':'TAVOLA'}],
 		'name':'QTY',
 		'priority':1}
 
@@ -173,26 +175,27 @@ PAGAMENTO = {'eff':'00000',
 			 'priority':1}
 
 ORDINAZIONE = {'eff':'**1**',
+			   'turn':'Ok, segnato',
 			   'memory':ordinazione_mem,
-			   'successors':[{'name':'ITER'}],
+			   'successors':[{'name':'TAVOLA'}],
 			   'name':'ORDINAZIONE',
 			   'priority':1}
 
 TR_OGGETTO = {'turn':tr_oggetto_tur,
-		  	  'successors':[{'name':'ITER'}],
+		  	  'successors':[{'name':'TAVOLA'}],
 		  	  'name':'TR_OGGETTO',
 		  	  'priority':1}
 				   
 
 INFORMAZIONE = {'turn':informazione_tur,
-				'successors':[{'name':'ITER'}],
+				'successors':[{'name':'TAVOLA'}],
 				'name':'INFORMAZIONE',
 				'priority':1}
 
 RIEPILOGO = {'turn':riepilogo_tur,
 			 'exec':riepilogo_exe,
 			 'memory':riepilogo_mem,
-			 'successors':[{'name':'HELP'}],
+			 'successors':[{'name':'ATTESA'}],
 			 'name':'RIEPILOGO',
 			 'priority':1
 			}
@@ -202,6 +205,7 @@ ORDINAZIONE_CONFERMA = {'turn':ord_conf_tur, #deve guardare in memoria (per acch
 						'memory':ord_conf_mem,
 						'successors_f':ord_conf_succ, #deve guardare in memoria (per acchiappare cosa ha detto il cliente e restringere la grammatica)
 						'successors':[{'name':'ORDINAZIONE','in':'mem','pre':''},
+									  {'name':'ALT','in':'','pre':''},
 		  	  						  {'name':'ORDINAZIONE_CONFERMA_UNK','in':'','pre':''}],
 		  	  			'name':'ORDINAZIONE_CONFERMA',
 		  	  			'priority':1
@@ -211,46 +215,17 @@ ORDINAZIONE_CONFERMA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere
 							'input':'',
 							'successors_f':ord_conf_succ, #deve guardare mem per acchiappare cosa ha detto il cliente
 							'successors':[{'name':'ORDINAZIONE','in':'mem','pre':''},
+										  {'name':'ALT','in':'','pre':''},
 		  	  						  	  {'name':'ORDINAZIONE_CONFERMA_UNK','in':'','pre':''}],
 		  	  				'name':'ORDINAZIONE_CONFERMA_UNK',
 		  	  				'priority':1
 		  	  		    	}
 
-ITER = {'turn':iter_tur,
-		'successors_f':iter_succ,
-		'successors':[{'name':'ITER_UNK'}],
-		'name':'ITER',
+ALT = {'turn':'Ok, come preferisci',
+		'successors':[{'name':'TAVOLA'}],
+		'name':'ALT',
 		'priority':1}
 
-ITER_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
-			'successors_f':iter_succ,
-			'successors':[{'name':'ITER_UNK'}],
-			'name':'ITER_UNK',
-			'priority':1}
-
-
-# ORDINAZIONE_ITER = {'turn':ord_iter_tur, #random choice fra alcune frasi del tipo (e poi?)
-# 					'input':'',
-# 					'successors_f':ord_iter_succ, #simile a inputframe_succ ma con la root fissa a "portami un" perchè è prevista solo l'ordinazione!!!
-# 					'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
-# 		  	  					  {'name':'ORDINAZIONE_CONFERMA','in':frames[0],'pre':''},
-# 		  	  					  {'name':'RIEPILOGO','in':{'regex':'(.*no.*|.*basta.*|.*no basta.*)'},'pre':''},
-# 		  	  					  {'name':'ORDINAZIONE_ITER_UNK','in':'','pre':''}],
-# 		  	  		'name':'ORDINAZIONE_ITER',
-# 		  	  		'priority':1
-# 					}
-
-
-# ORDINAZIONE_ITER_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
-# 						'input':'',
-# 						'successors_f':ord_iter_succ, #simile a inputframe_succ ma con la root fissa a "portami un" perchè è prevista solo l'ordinazione!!!
-# 						'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
-# 			  	  					  {'name':'ORDINAZIONE_CONFERMA','in':frames[0],'pre':''},
-# 			  	  					  {'name':'RIEPILOGO','in':{'regex':'(.*no.*|.*basta.*|.*no basta.*)'},'pre':''},
-# 			  	  					  {'name':'ORDINAZIONE_ITER_UNK','in':'','pre':''}],
-# 			  	  		'name':'ORDINAZIONE_ITER',
-# 			  	  		'priority':1
-# 						}
 
 # HELP = {'turn':'Posso fare altro?',
 # 		'input':'',
@@ -290,8 +265,6 @@ FSA = {'ATTESA':ATTESA,
 	   'NOIN':NOIN,
 	   'PAGAMENTO':PAGAMENTO,
 	   'ORDINAZIONE':ORDINAZIONE,
-	   #'ORDINAZIONE_ITER':ORDINAZIONE_ITER,
-	   #'ORDINAZIONE_ITER_UNK':ORDINAZIONE_ITER_UNK,
 	   'ORDINAZIONE_CONFERMA':ORDINAZIONE_CONFERMA,
 	   'ORDINAZIONE_CONFERMA_UNK':ORDINAZIONE_CONFERMA_UNK,
 	   #'HELP':HELP,
@@ -299,5 +272,4 @@ FSA = {'ATTESA':ATTESA,
 	   'RIEPILOGO':RIEPILOGO,
 	   'TR_OGGETTO':TR_OGGETTO,
 	   'INFORMAZIONE':INFORMAZIONE,
-	   'ITER':ITER,
-	   'ITER_UNK':ITER_UNK}
+	   'ALT':ALT}

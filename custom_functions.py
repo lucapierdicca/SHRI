@@ -5,6 +5,7 @@ from pprint import pprint
 import menu_utils
 import random
 import re
+from PIL import Image
 
 def state_entails(action,state):
 	if action['pre'] != '':
@@ -17,7 +18,7 @@ def state_entails(action,state):
 #===========================================================================
 #===========================================================================
 
-debug = True
+debug = False
 
 
 def attesa_suc(args):
@@ -30,6 +31,7 @@ def attesa_suc(args):
 	for s in successors_list:
 		if state_entails(s,state) and curr_input == s['in']:
 			applicable_successors.append({'name':s['name'],
+										  'input':curr_input,
 										  'priority':FSA[s['name']]['priority']})
 	
 	if len(applicable_successors) == 0:
@@ -216,6 +218,11 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	if orig_sen_words_string == '' or orig_sen_words_string == None:
 		return mapped_frame
 
+	if re.search('(no.*|basta così.*|puoi andare.*)',orig_sen_words_string) != None:
+		mapped_frame.append(['RIEPILOGO','',''])
+		return mapped_frame
+
+
 	#altrimenti fai tutto il resto
 	orig_sen_ann_list = augment_annotations(orig_sen_words_string)
 
@@ -307,14 +314,16 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	qty = qty[1:]
 	if debug: print(qty)
 	
+
 	#se c'è un nummod e questo non è nelle allowed qty -> error (QTY)
 	if qty[0][0] == 'nummod':
 		allowed_qty = ['uno','una','due','tre','quattro']
 		if qty[0][1] not in allowed_qty:
 			if debug: print('Errore quantità')
 			mapped_frame.append(['QTY','',''])
-		return mapped_frame
+			return mapped_frame
 	
+
 	#altrimenti
     #trova la root
 	root=''
@@ -322,6 +331,7 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 		if i["dep"] == "ROOT":
 			root = i["dependentGloss"]
 			
+
 
 	#se la root non c'è allora -> error
 	if root=='':
@@ -395,6 +405,8 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	frame_to_nouns = {}
 	#popolo frame_to_nouns nel modo opportuno in funzione del check fatto prima
 	qty_lbl = qty[0][1]
+	menu_lbl = ''
+	utt_lbl = ''
 	if internal_words_check>0:
 		for k,v in struct.items():
 			menu_lbl = k
@@ -619,7 +631,9 @@ def tavola_suc(args):
 
 
 def prenotazione1_exe(args):
-	menu_utils.print_menu(FSA_config.menu)
+	pil_im = Image.open('menu.png', 'r')
+	pil_im.show()
+	#menu_utils.print_menu(FSA_config.menu)
 
 
 def pagamento_tur(args):
@@ -667,22 +681,26 @@ def riepilogo_mem(args):
 
 
 def riepilogo_tur(args):
-	count = {}
-	for ordine in FSA_config.short_term:
-		qty = ordine[0]
-		menu_lbl = ordine[1]
-		if menu_lbl not in count:
-			count[menu_lbl] = qty
-		else:
-			count[menu_lbl]+= qty
 
-	turn = []
-	for k,v in count.items():
-		turn += [str(v),k,',']
-	turn = turn[:-1]
-	turn.insert(0,'Hai ordinato')
+	if len(FSA_config.short_term) != 0:
+		count = {}
+		for ordine in FSA_config.short_term:
+			qty = ordine[0]
+			menu_lbl = ordine[1]
+			if menu_lbl not in count:
+				count[menu_lbl] = qty
+			else:
+				count[menu_lbl]+= qty
 
-	turn = ' '.join(turn)+'. Arrivo subito!'
+		turn = []
+		for k,v in count.items():
+			turn += [str(v),k,',']
+		turn = turn[:-1]
+		turn.insert(0,'Hai ordinato')
+
+		turn = ' '.join(turn)+'. Facciamo subito!'
+	else:
+		turn = ''
 
 	return turn
 
@@ -715,314 +733,14 @@ def informazione_tur(args):
 	return turn
 
 
-def ord_iter_tur(args):
-	this_input = args[0]
-	turns = ['Sì, poi?','Ok, poi?','Sì certo, e dopo?']
-	index = random.randint(0,len(turns)-1)
-
-	return turns[index]
-
-
-def ord_iter_frame_mapping(orig_sen_words_string,frames):
-
-	#lista delle mappature 
-	mapped_frame = []
-
-	#se l'input è vuoto -> error
-	if orig_sen_words_string == '' or orig_sen_words_string == None:
-		return mapped_frame
-
-	#altrimenti fai tutto il resto
-	orig_sen_ann_list = augment_annotations(orig_sen_words_string)
-
-	regexes = [i for i in frames if 'regex' in i]
-	frames = [i for i in frames if 'lu_s' in i]
-
-	m = re.search(regexes[0]['regex'], orig_sen_words_string)
-
-	if m is not None:
-		mapped_frame.append(['RIEPILOGO','',''])
-		return mapped_frame
-
-	dobj,dobj_index='',0
-	for i in orig_sen_ann_list:
-		if i['dep']=='ROOT':
-			root = i['dependentGloss']
-			root_index = i['dependent']
-			root_pos = i['pos']
-		if i['dep']=='dobj':
-			dobj = i['dependentGloss']
-			dobj_index = i['dependent'] 
-
-	standard_root = 'portami '
-
-	frame_to_verb = {'NOIN': ['portami', 'portare', 1], 'ORDINAZIONE': ['portami', 'portare', 1]}
-
-	if root_pos == 'V':
-		prep_sen_words_string = preprocess(orig_sen_words_string,standard_root)
-	else:
-		det = ''
-		for i in orig_sen_ann_list:
-			if i['dep'] == 'nummod' or i['dep'] == 'det':
-				if i['governorGloss'] == root:
-					det = i['dependentGloss']
-		
-		if det == '': det='un'
-
-		internal_word,internal_word_index = [],[]
-		for i in orig_sen_ann_list:
-			if i['dep'] != 'case' and i['dep'] != 'det':
-				for f in frames:
-					for l in f['lu_s']:
-						if i['lemma'] in ' '.join([i['lemma'] for i in augment_annotations('portami un '+l)]):
-							internal_word.append(i['dependentGloss'])
-							internal_word_index.append(i['dependent'])
-
-
-		if len(internal_word) != 0:
-			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_ann_list[internal_word_index[0]-1:]])
-		elif dobj != '':
-			prep_sen_words_string = standard_root+det+' '+' '.join([i['dependentGloss'] for i in orig_sen_ann_list[dobj_index-1:]])
-		else:
-			return mapped_frame
-
-
-	if debug: print(prep_sen_words_string)
-
-	
-	#annoto la nuova frase preprocessata
-	prep_sen_ann_list = augment_annotations(prep_sen_words_string)
-
-
-	#trovo gli indici di tutti i det o nummod
-	qty = [['','',0,'',0]]
-	for index,i in enumerate(prep_sen_ann_list):
-		if i['dep'] == 'det' or i['dep'] == 'nummod':
-			if i['governorGloss'] == qty[-1][3]:
-				qty[-1] = [i['dep'],i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']]
-			else:
-				qty.append([i['dep'],i['dependentGloss'],i['dependent'],i['governorGloss'],i['dependent']-i['governor']])
-
-	qty.append(['','',index+2,'',0])
-	qty = qty[1:]
-	if debug: print(qty)
-	
-	#se c'è un nummod e questo non è nelle allowed qty -> error (QTY)
-	if qty[0][0] == 'nummod':
-		allowed_qty = ['uno','una','due','tre','quattro']
-		if qty[0][1] not in allowed_qty:
-			if debug: print('Errore quantità')
-			mapped_frame.append(['QTY','',''])
-		return mapped_frame
-	
-	#altrimenti
-    #trova la root
-	root=''
-	for i in prep_sen_ann_list:
-		if i["dep"] == "ROOT":
-			root = i["dependentGloss"]
-			
-
-	#se la root non c'è allora -> error
-	if root=='':
-		if debug: print('Non esiste una preprocessed root ... ATTENTO')
-		return mapped_frame
-
-	#altrimenti
-    # cerca il dobj
-	obj_lemma = ''
-	for i in prep_sen_ann_list:
-		if (i["governorGloss"] == root and (i["dep"] == "dobj" or i["dep"] == "xcomp")):
-			obj = i["dependentGloss"]
-			obj_lemma = i["lemma"]
-			obj_sen_index = i["dependent"]
-    
-    # se non c'è il dobj -> error                     
-	if obj_lemma is '':
-		if debug: print("Errore dobj")
-		return mapped_frame
-
-
-	if debug: print("root: %s - obj: %s - obj_lemma: %s" % (root,obj,obj_lemma))
-
-    # altrimenti
-   	#creo la struttura per l'intero lessico
-	struct = {s:[[0]*len(s.split(' ')),['']*len(s.split(' ')),f['name']] for f in frames for s in f['lu_s'] }
-                
-    #aggiorno la struttura in caso di SWE
-	for x in struct.keys():
-		hp_menu_sentence_dict = augment_annotations(standard_root+' un '+x)
-		for numi, i in enumerate(hp_menu_sentence_dict):
-			if numi>1 and i["lemma"] == obj_lemma and i["dep"] != "case" and i["dep"] != "conj":
-				struct[x][0][numi-2] +=1
-				struct[x][1][numi-2] = obj
-
-	if debug:
-		print('\n'+str(1))
-		pprint(struct)         
-        
-	#aggiorno la struttura in caso di MWE elastiche che rispettano l'ordine 
-	raccogli = [k for k,v in struct.items() if len(v)>1 and v[0][0] == 1 and v[0][-1] != 1]
-
-	for k in raccogli:
-		fake_sen_ann_list = augment_annotations(standard_root+' un '+k)[3:]
-		fake_len = len(fake_sen_ann_list)+1
-		
-		fake_sen_ann_list = [i for i in fake_sen_ann_list if i['dep'] != 'case' and i['dep'] != 'det']
-		sliced_prep_sen_ann_list = [i for i in prep_sen_ann_list[obj_sen_index:] if i['dep'] != 'case' and i['dep'] != 'det']
-
-		if len(sliced_prep_sen_ann_list)>0:
-			if fake_sen_ann_list[0]['lemma'] == sliced_prep_sen_ann_list[0]['lemma']:
-				struct[k][0][fake_len-1] = 1
-				struct[k][1][fake_len-1] = sliced_prep_sen_ann_list[0]['dependentGloss']
-
-	if debug:
-		print('\n'+str(2))
-		pprint(struct)   
-
-    #aggiorno la struttura in caso di MWE elastiche che non rispettano l'ordine
-	dep_check(struct,obj_sen_index,prep_sen_ann_list)
-
-	if debug:
-		print('\n'+str(3))
-		pprint(struct)   
-
-	#check sull'effettiva presenza di internal words
-	internal_words_check = 0
-	for k,v in struct.items():
-		internal_words_check += sum(v[0])
-	
-	frame_to_nouns = {}
-	#popolo frame_to_nouns nel modo opportuno in funzione del check fatto prima
-	if internal_words_check>0:
-		qty_lbl = qty[0][1]
-		for k,v in struct.items():
-			menu_lbl = k
-			utt_lbl = v[1][0]
-			if len(v[0])>1:
-				if sum(v[0])>1:
-					if v[2] not in frame_to_nouns:
-						frame_to_nouns[v[2]] = [[qty_lbl,menu_lbl,utt_lbl]]
-					else:
-						frame_to_nouns[v[2]].append([qty_lbl,menu_lbl,utt_lbl])
-				elif sum(v[0])==1:
-					if v[2]+'_CONFERMA' not in frame_to_nouns:
-						frame_to_nouns[v[2]+'_CONFERMA'] = [[qty_lbl,menu_lbl,utt_lbl]]
-					else:
-						frame_to_nouns[v[2]+'_CONFERMA'].append([qty_lbl,menu_lbl,utt_lbl])
-			else:
-				if v[0][0] == 1:
-					if v[2] not in frame_to_nouns:
-						frame_to_nouns[v[2]] = [[qty_lbl,menu_lbl,utt_lbl]]
-					else:
-						frame_to_nouns[v[2]].append([qty_lbl,menu_lbl,utt_lbl])
-	else:
-		frame_to_nouns['NOIN'] = [[qty_lbl,menu_lbl,utt_lbl]]
-
-
-	if debug:
-		pprint(frame_to_nouns)
-
-
-
-	#occupiamoci di quantità/articoli gestiti in modo diverso in funzione del frame
-	quantity_to_token_ord = {1:['un',"un'",'uno','una','il','la','lo',"l'",'gli','i','le',''],
-						 	2:['due'],
-						 	3:['tre'],
-						 	4:['quattro']}
-
-	quantity_to_token_tr = {1:['un',"un'",'uno','una','il','la','lo',"l'"],
-							2:['due'],
-							3:['tre'],
-							4:['quattro']}
-	
-	quantity_to_token_pa = {1:['il']}
-
-	quantity_to_token_in = {1:['i']}
-
-	token_to_quantity_ord = {t:k for k,v in quantity_to_token_ord.items() for t in v}
-	token_to_quantity_tr = {t:k for k,v in quantity_to_token_tr.items() for t in v}
-	token_to_quantity_pa = {t:k for k,v in quantity_to_token_pa.items() for t in v}
-	token_to_quantity_in = {t:k for k,v in quantity_to_token_in.items() for t in v}
-
-	for k,v in frame_to_nouns.items():
-		if k == 'ORDINAZIONE' or k == 'ORDINAZIONE_CONFERMA' or k=='NOIN':
-			t = token_to_quantity_ord
-		elif k == 'TR_OGGETTO':
-			t = token_to_quantity_tr
-		elif k == 'PAGAMENTO':
-			t = token_to_quantity_pa
-		elif k == 'INFORMAZIONE':
-			t = token_to_quantity_in
-		for i in v:
-			if i[0] in t:
-				i[0] = t[i[0]]
-			else:
-				i[0] = -1
-
-	#incrocio frame_to_verbs e frame_to_nouns
-	#e ottengo il matching finale tra i verbi e le internal words
-	#riempio finalmente mapped_frame
-	for k1 in frame_to_verb.keys():
-		for k2 in frame_to_nouns.keys():
-			if k1 in k2 and frame_to_nouns[k2][0][0] != -1: #se qtà pari a -1 non verrà inserito in mapped_frame -> probabile error
-				mapped_frame.append([k2,frame_to_verb[k1][1],frame_to_nouns[k2]])
-
-	
-	# se 'ORDINAZIONE' e 'ORDINAZIONE_CONFERMA' sono presenti contemporaneamente in mapped_frame, vince sempre 'ORDINAZIONE'
-	ordinazione_check = False
-	for i in mapped_frame:
-		if i[0] == 'ORDINAZIONE':
-			ordinazione_check=True
-	if ordinazione_check:
-		mapped_frame=[i for i in mapped_frame if i[0] != 'ORDINAZIONE_CONFERMA']
-
-
-	if debug:
-		pprint(mapped_frame)
-
-
-	return mapped_frame
-
-
-def ord_iter_succ(args):
-	curr_input = args[0]
-	successors_list = args[1]
-	FSA = args[2]
-	state = args[3]
-
-	frames = []
-	for i in args[1]:
-		if i['in'] not in frames and i['in'] != '':
-			frames.append(i['in'])
-
-	mapped_frame = ord_iter_frame_mapping(curr_input,frames)
-	
-	applicable_successors = []
-
-	for f in mapped_frame:
-		this_input = [f[1],f[2],f[0]]
-		for s in successors_list:
-			if state_entails(s,state) and f[0] == s['name']:
-				applicable_successors.append({'name':s['name'],
-											  'input':this_input,
-											  'priority':FSA[s['name']]['priority']})
-	if len(applicable_successors) == 0:
-		applicable_successors.append({'name':successors_list[-1]['name'],
-									  'priority':FSA[successors_list[-1]['name']]['priority']})
-
-	return applicable_successors
-
-
 def ord_conf_mem(args):
 	this_input = args[0]
 
 	menu_lbls = this_input[1]
 	frame = this_input[2]
 	FSA_config.short_term.append([menu_lbls,frame])
-	print(FSA_config.short_term)
 
-#TODO
+
 def ord_conf_tur(args):
 	#mi serve l'appoggio sulla short term memory per questo turn
 	#perchè l'utente potrebbe sbagliarsi nelle conferme
@@ -1039,7 +757,7 @@ def ord_conf_tur(args):
 
 	return turn
 
-#TODO
+
 def ord_conf_succ(args):
 	curr_input = args[0]
 	successors_list = args[1]
@@ -1057,27 +775,41 @@ def ord_conf_succ(args):
 							  		  'priority':FSA[successors_list[-1]['name']]['priority']})
 		return applicable_successors
 
+	#se non va bene nessuna proposta -> error ALT
+	if re.search('(no.*|nessun(o|a).*|niente.*)',orig_sen_words_string) != None:
+		applicable_successors.append({'name':'ALT',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['ALT']['priority']})
+
+		return applicable_successors
+
 
 	num_alternative = len(this_input_from_shterm[0])
 
 	if num_alternative == 1:
-		if re.search('si.*',curr_input) != None:
-			applicable_successors.append({'name':successors_list[0]['name'],
+		if re.search('si.*',orig_sen_words_string) != None:
+			applicable_successors.append({'name':'ORDINAZIONE',
 										  'input':['portare']+[this_input_from_shterm[0],successors_list[0]['name']],
 										  'priority':FSA[successors_list[0]['name']]['priority']})
 			return applicable_successors
 
 	else:
 		for i in this_input_from_shterm[0]:
-			if curr_input == i[1]:
-				applicable_successors.append({'name':successors_list[0]['name'],
+			if orig_sen_words_string == i[1]:
+				applicable_successors.append({'name':'ORDINAZIONE',
 											  'input':['portare']+[[i],successors_list[0]['name']],
 											  'priority':FSA[successors_list[0]['name']]['priority']})
 
 				return applicable_successors
 
 
-def help_succ(args):
+	applicable_successors.append({'name':successors_list[-1]['name'],
+							  	  'priority':FSA[successors_list[-1]['name']]['priority']})
+	
+	return applicable_successors
+
+
+def modifica_succ(args):
 	curr_input = args[0]
 	successors_list = args[1]
 	FSA = args[2]
@@ -1184,45 +916,14 @@ def noin_tur(args):
 	return turn
 
 
+def tavola_tur(args):
+	prev_state_input = args[0]
 
-
-def iter_tur(args):
-	turns = ['Serve altro?','Che altro posso fare?','Posso fare altro?']
-	index = random.randint(0,len(turns)-1)
-
-	return turns[index]
-
-def iter_succ(args):
-	curr_input = args[0]
-	successors_list = args[1]
-	FSA = args[2]
-	#state = args[3]
-
-	orig_sen_words_string = curr_input
-	
-	applicable_successors = []
-
-	#se l'input è vuoto -> error
-	if orig_sen_words_string == '' or orig_sen_words_string == None:
-		applicable_successors.append({'name':successors_list[-1]['name'],
-							  		  'priority':FSA[successors_list[-1]['name']]['priority']})
-		return applicable_successors
-
-	
-	if re.search('no.*', orig_sen_words_string) != None:
-		applicable_successors.append({'name':'ATTESA',
-									  'input':orig_sen_words_string,
-							  		  'priority':FSA['ATTESA']['priority']})
-	
-	elif re.search('si.*', orig_sen_words_string) != None:
-		applicable_successors.append({'name':'TAVOLA',
-							  'input':orig_sen_words_string,
-					  		  'priority':FSA['TAVOLA']['priority']})
-	
+	if prev_state_input == 'T':
+		turn = 'Dimmi pure'
 	else:
-		applicable_successors.append({'name':successors_list[-1]['name'],
-					  		  'priority':FSA[successors_list[-1]['name']]['priority']})
+		turns = ["Cos'altro desideri?",'Che altro posso fare?']
+		index = random.randint(0,len(turns)-1)
+		turn = turns[index]
 
-	return applicable_successors
-
-
+	return turn

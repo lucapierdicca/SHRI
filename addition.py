@@ -41,20 +41,14 @@ debug = True
 
 def dep_VIZ(file_id,text):
 	
-	# parser server url
-	tint_url = "http://localhost:8012/tint?"
-	response = requests.get(tint_url+'text='+text+'&format=json')
-	annotations = json.loads(response.text)
-
-	#pprint(annotations['sentences'][0]['basic-dependencies'])
-	# pprint(annotations['sentences'][0]['tokens'])
+	ann_list = augment_annotations(text)
 
 	f = Digraph(file_id, format='png')
 
-	for token in annotations['sentences'][0]['tokens']:
-		f.node(token['word']+'_'+str(token['index']))
+	for token in ann_list:
+		f.node(token['dependentGloss']+'_'+str(token['dependent']))
 
-	for edge in annotations['sentences'][0]['basic-dependencies']:
+	for edge in ann_list:
 		if edge['dep'] != 'ROOT':
 			f.edge(edge['governorGloss']+'_'+str(edge['governor']),
 					edge['dependentGloss']+'_'+str(edge['dependent']),
@@ -516,7 +510,7 @@ def inputframe_suc(args):
 
 			
 
-sentence = "sì vorrei ordinare gli spaghetti"
+sentence = "basta cosi"
 
 #pprint(augment_annotations(sentence))
 

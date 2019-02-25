@@ -72,6 +72,7 @@ def priority_sort_frontier():
 
 
 debug = True
+debug_frontier = False
 
 frontier = []
 curr_state_dict = {'name':'ATTESA','priority':FSA['ATTESA']['priority']}
@@ -85,7 +86,7 @@ def main():
 	while True:
 
 		priority_sort_frontier()
-		if debug: print(frontier)
+		if debug_frontier: print(frontier)
 		
 		curr_state_dict = frontier.pop(0)
 		#curr_state = FSA[curr_state_dict['name']]
