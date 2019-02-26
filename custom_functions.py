@@ -21,6 +21,8 @@ def state_entails(action,state):
 
 debug = False
 
+menu_check = False
+
 
 def attesa_suc(args):
 	curr_input = args[0]
@@ -637,9 +639,13 @@ def tavola_suc(args):
 
 
 def prenotazione1_exe(args):
-	
+
+	global menu_check
+
+	menu_check = True
+	wid=''
 	os.system('display menu.png &')
-	time.sleep(0.1)
+	time.sleep(0.5)
 	out = os.popen('wmctrl -l').read()
 	for line in out.splitlines():
 		if 'menu.png' in line:
@@ -727,6 +733,8 @@ def riepilogo_exe(args):
 	del FSA_config.short_term[:]
 
 	#chiudi il menu
+	global menu_check
+	menu_check = False
 	out = os.popen('ps -A').read()
 	for line in out.splitlines():
 		if 'display' in line:
@@ -739,17 +747,25 @@ def tr_oggetto_tur(args):
 
 	qty = this_input[1][0][0]
 	obj = this_input[1][0][2]
-	
-	turn='Ecco '+str(qty)+' '+obj
 
+	global menu_check
+	
+	wid=''
 	if obj == 'menu':
-		os.system('display menu.png &')
-		time.sleep(0.2)
-		out = os.popen('wmctrl -l').read()
-		for line in out.splitlines():
-			if 'menu.png' in line:
-				wid = line.split()[0]
-		os.system('wmctrl -i -r '+wid+' -e 0,1100,80,-1,-1')
+		if menu_check == False:
+			turn='Ecco '+'il'+' '+obj
+			os.system('display menu.png &')
+			time.sleep(0.5)
+			out = os.popen('wmctrl -l').read()
+			for line in out.splitlines():
+				if 'menu.png' in line:
+					wid = line.split()[0]
+			os.system('wmctrl -i -r '+wid+' -e 0,1100,80,-1,-1')
+			menu_check = True
+		else:
+			turn = 'Ho solo un menu, mi dispiace'
+	else:
+		turn='Ecco '+str(qty)+' '+obj
 	
 	return turn
 

@@ -3,7 +3,7 @@ import os
 import speech_recognition as sr
 from gtts import gTTS
 import time
-
+import subprocess
 from ctypes import *
 from contextlib import contextmanager
 import pyaudio
@@ -52,22 +52,19 @@ def text_to_speech(curr_state_dict):
 		else:
 			print(curr_state['turn'])
 
-import subprocess
 #TODO
 def speak(turn):
 	#c = "gtts-cli \""+turn+"\" -l \"it\" | mpg123 -"
 	tts = gTTS(turn,'it')
 	tts.save('turn.mp3')
 	#time.sleep(1)
-	print('Ennio: '+turn)
+	print('\033[92mEnnio: '+turn+'\033[0m')
 	#os.system('mpg123 -q /home/luca/Desktop/SHRI/turn.mp3')
 	subprocess.call('mpg123 -q /home/luca/Desktop/SHRI/turn.mp3', 
 					shell=True,
 					stdout=subprocess.PIPE,
 					stderr=subprocess.PIPE)
-	
-	
-	
+			
 
 def speech_to_text(curr_state_dict):
 	curr_state = FSA[curr_state_dict['name']]
@@ -95,6 +92,7 @@ def hear():
 		with noalsaerr() as n, sr.Microphone() as source:
 			print("In ascolto...")
 			audio = r.listen(source)
+			print("Fine registrazione")
 			try:
 				err = False
 				text = r.recognize_google(audio, language="it-IT")
@@ -102,8 +100,8 @@ def hear():
 			    err = True#print("Google Cloud Speech could not understand audio")
 			except sr.RequestError as e:
 			    err = True#print("Could not request results from Google Cloud Speech service; {0}".format(e))
-	print('Tu: '+text)
-	return text
+	print('\033[94mTu: '+text.lower()+'\033[0m')
+	return text.lower()
 
 def retrieve_successors(curr_input,curr_state_dict):
 	curr_state = FSA[curr_state_dict['name']]
@@ -132,7 +130,7 @@ def priority_sort_frontier():
 #=====================================================================================
 
 
-debug = False
+debug = True
 debug_frontier = False
 
 frontier = []
@@ -171,38 +169,3 @@ def main():
 
 main()
 
-# def speech_to_text(curr_state, robot_hears, debug=True):
-	
-# 	text, o_text, p_text = '','',''
-# 	global info_memory
-	
-# 	if curr_state['input']: 
-# 		if not debug:
-# 			with sr.Microphone() as source:
-# 				print('In ascolto...')
-# 				audio = robot_hears.listen(source, timeout=60)
-# 		try:
-# 			if not debug:
-# 				o_text = robot_hears.recognize_google(audio, language='it-IT')
-# 			else:
-# 				o_text = input('Scrivi...\n')
-			
-# 			text = o_text
-			
-# 			if curr_state['preprocessing']:
-# 				p_text = preprocess(text, menu)
-# 				text = p_text
-
-# 			print('Utente_o: ' + o_text)
-# 			print('Utente_p: ' + p_text)
-
-# 		except sr.UnknownValueError:
-# 		    print('Google Cloud Speech could not understand audio')
-# 		except sr.RequestError as e:
-# 		    print('Could not request results from Google Cloud Speech service; {0}'.format(e))
-
-# 		info_memory['original_text'] = o_text
-
-# 	info_memory['curr_state_name'] = curr_state['name']
-
-# 	return text.lower()

@@ -37,7 +37,7 @@ world_state = ['0','0','0','0','0']
 #=========================================== STATES ============================================================
 
 ATTESA = {'eff':'***00',
-		  'turn':'Digitare T per chiamare al tavolo\n\t\t E per far entrare un nuovo cliente',
+		  'turn':'Digitare T per chiamare al tavolo\n\t E per far entrare un nuovo cliente',
 		  'input':'',
 		  'successors_f':attesa_suc,
 		  'successors':[{'name':'BENVENUTO','pre':'','in':'E'},
@@ -49,7 +49,7 @@ ATTESA = {'eff':'***00',
 		 }
 
 
-ATTESA_UNK = {'turn':'Digitare T per chiamare al tavolo\n\t\t E per far entrare un nuovo cliente',
+ATTESA_UNK = {'turn':'Digitare T per chiamare al tavolo\n\t E per far entrare un nuovo cliente',
 		      'successors':[{'name':'ATTESA'}],
 		  	  'name':'ATTESA_UNK',
 		  	  'priority':1}
@@ -124,7 +124,7 @@ TAVOLA = {'eff':'***21',
 
 
 
-TAVOLA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
+TAVOLA_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?\nProva con\n"vorrei ordinare una crostata" oppure\n"potresti portarmi una forchetta" oppure\n"potresti elencare i primi piatti"',
 			  'input':'',
 			  'successors_f':tavola_suc,
 		  	  'successors':[{'name':'ORDINAZIONE','in':frames[0],'pre':''},
