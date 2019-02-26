@@ -177,12 +177,66 @@ INFORMAZIONE = {'turn':informazione_tur,
 				'priority':1}
 
 RIEPILOGO = {'turn':riepilogo_tur,
-			 'exec':riepilogo_exe,
+			 'input':'',
 			 'memory':riepilogo_mem,
-			 'successors':[{'name':'ATTESA'}],
+			 'successors_f':riepilogo_succ,
+			 'successors':[{'name':'R_SI'},
+			 			   {'name':'R_NO_1'},
+			 			   {'name':'RIEPILOGO_UNK'}],
 			 'name':'RIEPILOGO',
 			 'priority':1
 			}
+
+R_SI = {'turn':'Perfetto, ecco la tua ordinazione. Buon appetito!',
+		'exec':r_si_exe,
+		'successors':[{'name':'ORDINAZIONE_LONG'}],
+		'name':'R_SI',
+		'priority':1}
+
+R_NO_1 = {'turn':r_no_1_tur,
+		  'input':'',
+		  'successors_f':r_no_1_succ,
+		  'successors':[{'name':'R_NO_2'},
+			 		    {'name':'R_NO_1_UNK'}],
+		  'name':'R_NO_1',
+		  'priority':1}
+
+R_NO_2 = {'turn':'Cosa ti porto in alternativa?',
+		  'input':'',
+		  'successors_f':r_no_2_succ,
+		  'successors':[{'name':'RIEPILOGO'},
+			 		    {'name':'R_NO_2_UNK'}],
+		  'name':'R_NO_2',
+		  'priority':1}
+
+R_NO_1_UNK = {'turn':'Non mi avevi chiesto questo piatto...',
+		  	  'input':'',
+		  	  'successors_f':r_no_1_succ,
+		  	  'successors':[{'name':'R_NO_2'},
+			 		    {'name':'R_NO_1_UNK'}],
+		  'name':'R_NO_1_UNK',
+		  'priority':1}
+
+R_NO_2_UNK = {'turn':'Questo piatto non è nel menu',
+		  'input':'',
+		  'successors_f':r_no_2_succ,
+		  'successors':[{'name':'RIEPILOGO'},
+			 		    {'name':'R_NO_2_UNK'}],
+		  'name':'R_NO_2_UNK',
+		  'priority':1}
+
+RIEPILOGO_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
+				 'input':'',
+			 	 'successors':[{'name':'R_SI'},
+			 			   		{'name':'R_NO_1'},
+			 			   		{'name':'R_CONF_UNK'}],
+			 	'name':'RIEPILOGO_UNK',
+			 	'priority':1}
+
+ORDINAZIONE_LONG = {'memory':ordinazione_long_mem,
+			   'successors':[{'name':'TAVOLA'}],
+			   'name':'ORDINAZIONE_LONG',
+			   'priority':1}
 
 ORDINAZIONE_CONFERMA = {'turn':ord_conf_tur, #deve guardare in memoria (per acchiappare i piatti questo o quello)
 						'input':'',
@@ -211,29 +265,6 @@ ALT = {'turn':'Ok, come preferisci',
 		'priority':1}
 
 
-# HELP = {'turn':'Posso fare altro?',
-# 		'input':'',
-# 		'successors_f':help_succ,
-# 		'successors':[{'name':'ATTESA','in':{'regex':'(no.*|(no|) puoi andare.*)'},'pre':''},
-# 		  	  			{'name':'TAVOLA','in':{'regex':'si.*'},'pre':''},
-# 		  	  			{'name':'HELP_UNK','in':'','pre':''}],
-# 		'name':'HELP',
-# 		'priority':1
-# 		}
-
-# HELP_UNK = {'turn':'Mi dispiace non ho capito. Potresti ripetere?',
-# 			'input':'',
-# 			'successors_f':help_succ,
-# 			'successors':[{'name':'ATTESA','in':{'regex':'no.*'},'pre':''},
-# 			  	  			{'name':'TAVOLA','in':{'regex':'si.*'},'pre':''},
-# 			  	  			{'name':'HELP_UNK','in':'','pre':''}],
-# 			'name':'HELP_UNK',
-# 			'priority':1
-# 			}
-
-
-
-
 
 
 FSA = {'ATTESA':ATTESA,
@@ -251,13 +282,18 @@ FSA = {'ATTESA':ATTESA,
 	   'ORDINAZIONE':ORDINAZIONE,
 	   'ORDINAZIONE_CONFERMA':ORDINAZIONE_CONFERMA,
 	   'ORDINAZIONE_CONFERMA_UNK':ORDINAZIONE_CONFERMA_UNK,
-	   #'HELP':HELP,
-	   #'HELP_UNK':HELP_UNK,
 	   'RIEPILOGO':RIEPILOGO,
+	   'RIEPILOGO_UNK':RIEPILOGO_UNK,
+	   'R_SI':R_SI,
+	   'R_NO_1':R_NO_1,
+	   'R_NO_2':R_NO_2,
+	   'R_NO_1_UNK':R_NO_1_UNK,
+	   'R_NO_2_UNK':R_NO_2_UNK,
 	   'TR_OGGETTO':TR_OGGETTO,
 	   'INFORMAZIONE':INFORMAZIONE,
 	   'ALT':ALT,
-	   'QTY':QTY}
+	   'QTY':QTY,
+	   'ORDINAZIONE_LONG':ORDINAZIONE_LONG}
 
 for k,v in FSA.items():
 	for k1 in v.keys():

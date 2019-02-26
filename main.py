@@ -83,7 +83,7 @@ def speech_to_text(curr_state_dict):
 #TODO
 def hear():
 	r = sr.Recognizer()
-	r.energy_threshold = 200
+	#r.energy_threshold = 200
 	
 	err = True
 	while err:
@@ -91,15 +91,18 @@ def hear():
 
 		with noalsaerr() as n, sr.Microphone() as source:
 			print("In ascolto...")
+			r.adjust_for_ambient_noise(source)
 			audio = r.listen(source)
-			print("Fine registrazione")
+			print("Fine ascolto")
 			try:
 				err = False
 				text = r.recognize_google(audio, language="it-IT")
 			except sr.UnknownValueError:
 			    err = True#print("Google Cloud Speech could not understand audio")
+			    print('Alza la voce per favore')
 			except sr.RequestError as e:
 			    err = True#print("Could not request results from Google Cloud Speech service; {0}".format(e))
+			    print('Alza la voce per favore')
 	print('\033[94mTu: '+text.lower()+'\033[0m')
 	return text.lower()
 
@@ -130,7 +133,7 @@ def priority_sort_frontier():
 #=====================================================================================
 
 
-debug = True
+debug = False
 debug_frontier = False
 
 frontier = []

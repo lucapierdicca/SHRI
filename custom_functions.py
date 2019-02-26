@@ -23,6 +23,8 @@ debug = False
 
 menu_check = False
 
+comanda_mod = 0
+
 
 def attesa_suc(args):
 	curr_input = args[0]
@@ -221,7 +223,7 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	if orig_sen_words_string == '' or orig_sen_words_string == None:
 		return mapped_frame
 
-	if re.search('(^no$|^no .*|^basta($| così.*)|puoi andare.*)',orig_sen_words_string) != None:
+	if re.search('(^no$|^no .*|^basta($| così.*)|puoi andare.*|^niente.*)',orig_sen_words_string) != None:
 		mapped_frame.append(['RIEPILOGO','',''])
 		return mapped_frame
 
@@ -695,7 +697,11 @@ def ordinazione_mem(args):
 	frame = this_input[2]
 
 	FSA_config.short_term.append([qty,menu_lbl,frame])
-	FSA_config.long_term.append([qty,menu_lbl,frame])
+	#FSA_config.long_term.append([qty,menu_lbl,frame])
+
+def ordinazione_long_mem(args):
+	FSA_config.long_term += FSA_config.short_term
+	del FSA_config.short_term[:]
 
 
 def riepilogo_mem(args):
@@ -721,16 +727,53 @@ def riepilogo_tur(args):
 		turn = turn[:-1]
 		turn.insert(0,'Hai ordinato')
 
-		turn = ' '.join(turn)+'. Facciamo subito!'
+		turn = ' '.join(turn)+'. Confermi?'
 	else:
 		turn = ''
 
 	return turn
 
 
-def riepilogo_exe(args):
-	#resetta la short_term
-	del FSA_config.short_term[:]
+def riepilogo_succ(args):
+	curr_input = args[0]
+	successors_list = args[1]
+	FSA = args[2]
+	state = args[3]
+
+	orig_sen_words_string = curr_input
+
+	applicable_successors = []
+
+	#se l'input è vuoto -> error
+	if orig_sen_words_string == '' or orig_sen_words_string == None:
+		applicable_successors.append({'name':successors_list[-1]['name'],
+							  		  'priority':FSA[successors_list[-1]['name']]['priority']})
+		return applicable_successors
+	
+
+	if re.search('(^si.*)',orig_sen_words_string) != None:
+		applicable_successors.append({'name':'R_SI',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['R_SI']['priority']})
+
+		return applicable_successors
+
+
+	if re.search('(^no.*)',orig_sen_words_string) != None:
+		applicable_successors.append({'name':'R_NO_1',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['R_NO_1']['priority']})
+
+		return applicable_successors
+
+
+	applicable_successors.append({'name':successors_list[-1]['name'],
+						  		  'priority':FSA[successors_list[-1]['name']]['priority']})
+	
+	return applicable_successors	
+
+
+def r_si_exe(args):
 
 	#chiudi il menu
 	global menu_check
@@ -740,6 +783,91 @@ def riepilogo_exe(args):
 		if 'display' in line:
 			pid = int(line.split(None, 1)[0])
 			os.kill(pid, signal.SIGKILL)
+
+
+def r_no_1_tur(args):
+	turn = '\n'.join([i[1] for i in FSA_config.short_term])+'.\nCosa vuoi modificare?'
+	return turn
+
+
+def r_no_1_succ(args):
+	curr_input = args[0]
+	successors_list = args[1]
+	FSA = args[2]
+	state = args[3]
+
+	comanda = [i[1] for i in FSA_config.short_term]
+
+	orig_sen_words_string = curr_input
+
+	applicable_successors = []
+
+	#se l'input è vuoto -> error
+	if orig_sen_words_string == '' or orig_sen_words_string == None:
+		applicable_successors.append({'name':successors_list[-1]['name'],
+							  		  'priority':FSA[successors_list[-1]['name']]['priority']})
+		return applicable_successors
+	
+
+	if orig_sen_words_string in comanda:
+		
+		global comanda_mod
+		
+		for i in comanda:
+			if orig_sen_words_string == i:
+				comanda_mod = i
+		
+		applicable_successors.append({'name':'R_NO_2',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['R_NO_2']['priority']})
+
+		return applicable_successors
+
+
+	else:
+		applicable_successors.append({'name':'R_NO_1_UNK',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['R_NO_1_UNK']['priority']})
+
+		return applicable_successors
+	
+
+def r_no_2_succ(args):
+	curr_input = args[0]
+	successors_list = args[1]
+	FSA = args[2]
+	state = args[3]
+
+	orig_sen_words_string = curr_input
+
+	applicable_successors = []
+
+	#se l'input è vuoto -> error
+	if orig_sen_words_string == '' or orig_sen_words_string == None:
+		applicable_successors.append({'name':successors_list[-1]['name'],
+							  		  'priority':FSA[successors_list[-1]['name']]['priority']})
+		return applicable_successors
+	
+
+	if orig_sen_words_string in list(FSA_config.menu.keys()):
+				
+		for i in FSA_config.short_term:
+			if i[1] == comanda_mod:
+				i[1] = orig_sen_words_string
+		
+		applicable_successors.append({'name':'RIEPILOGO',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['RIEPILOGO']['priority']})
+
+		return applicable_successors
+
+
+	else:
+		applicable_successors.append({'name':'R_NO_2_UNK',
+								  	  'input':orig_sen_words_string,
+								  	  'priority':FSA['R_NO_2_UNK']['priority']})
+
+		return applicable_successors
 
 
 def tr_oggetto_tur(args):
