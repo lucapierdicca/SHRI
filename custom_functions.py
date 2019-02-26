@@ -5,7 +5,8 @@ from pprint import pprint
 import menu_utils
 import random
 import re
-from PIL import Image
+import os,signal
+import time
 
 def state_entails(action,state):
 	if action['pre'] != '':
@@ -218,7 +219,7 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	if orig_sen_words_string == '' or orig_sen_words_string == None:
 		return mapped_frame
 
-	if re.search('(^no$|^no .*|basta così.*|puoi andare.*)',orig_sen_words_string) != None:
+	if re.search('(^no$|^no .*|^basta($| così.*)|puoi andare.*)',orig_sen_words_string) != None:
 		mapped_frame.append(['RIEPILOGO','',''])
 		return mapped_frame
 
@@ -408,7 +409,7 @@ def tavola_frame_mapping(orig_sen_words_string,frames):
 	#popolo frame_to_nouns nel modo opportuno in funzione del check fatto prima
 	qty_lbl = qty[0][1]
 	menu_lbl = ''
-	utt_lbl = ''
+	utt_lbl = obj
 	if internal_words_check>0:
 		for k,v in struct.items():
 			menu_lbl = k
@@ -636,15 +637,26 @@ def tavola_suc(args):
 
 
 def prenotazione1_exe(args):
-	pil_im = Image.open('menu.png', 'r')
-	pil_im.show()
+	
+	os.system('display menu.png &')
+	time.sleep(0.1)
+	out = os.popen('wmctrl -l').read()
+	for line in out.splitlines():
+		if 'menu.png' in line:
+			wid = line.split()[0]
+	os.system('wmctrl -i -r '+wid+' -e 0,1100,80,-1,-1')
+			
+	
+	# pil_im = Image.open('menu.png', 'r')
+	# pil_im.show()
+	
 	#menu_utils.print_menu(FSA_config.menu)
 
 
 def pagamento_tur(args):
 
 	if len(FSA_config.long_term)==0:
-		turn = 'Non ha ordinato nulla, il totale da pagare è pari a 0.Grazie e arrivederci!'
+		turn = 'Non hai ordinato nulla, il totale da pagare è pari a 0. Grazie e arrivederci!'
 		return turn
 
 	count = {}
@@ -714,6 +726,13 @@ def riepilogo_exe(args):
 	#resetta la short_term
 	del FSA_config.short_term[:]
 
+	#chiudi il menu
+	out = os.popen('ps -A').read()
+	for line in out.splitlines():
+		if 'display' in line:
+			pid = int(line.split(None, 1)[0])
+			os.kill(pid, signal.SIGKILL)
+
 
 def tr_oggetto_tur(args):
 	this_input = args[0]
@@ -722,6 +741,15 @@ def tr_oggetto_tur(args):
 	obj = this_input[1][0][2]
 	
 	turn='Ecco '+str(qty)+' '+obj
+
+	if obj == 'menu':
+		os.system('display menu.png &')
+		time.sleep(0.2)
+		out = os.popen('wmctrl -l').read()
+		for line in out.splitlines():
+			if 'menu.png' in line:
+				wid = line.split()[0]
+		os.system('wmctrl -i -r '+wid+' -e 0,1100,80,-1,-1')
 	
 	return turn
 
@@ -911,12 +939,23 @@ def noin_tur(args):
 
 	verb = this_input[0]
 	qty = this_input[1][0][0]
-	obj = this_input[1][0][1]
-	
-	if qty >=1:
-		turn = 'Mi dispiace ma non posso '+verb+' '+str(qty)+' '+obj
+	obj = this_input[1][0][2]
+
+	verb_ann = augment_annotations(verb)
+
+	person = 2
+
+	if 'features' in verb_ann[0] and 'person' in verb_ann[0]['features'] and verb_ann[0]['lemma'] != 'volere':
+		person = verb_ann[0]['features']['person']
+
+	if int(person) == 1:
+		turn = 'Non so cosa dovrei fare, scusa...'
 	else:
-		urn = 'Mi dispiace ma non posso '+verb+' '+obj
+		if verb_ann[0]['lemma'] == 'volere': verb = 'portare'
+		if qty >=1:
+			turn = 'Mi dispiace ma non posso '+verb+' '+str(qty)+' '+obj
+		else:
+			urn = 'Mi dispiace ma non posso '+verb+' '+obj
 
 	return turn
 

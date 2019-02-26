@@ -510,7 +510,7 @@ def inputframe_suc(args):
 
 			
 
-sentence = "potresti elencarmi i primi piatti"
+sentence = "saluto"
 
 #pprint(augment_annotations(sentence))
 
@@ -520,4 +520,18 @@ sentence = "potresti elencarmi i primi piatti"
 #print()
 
 
-dep_VIZ('0',sentence)
+#dep_VIZ('0',sentence)
+import os
+from gtts import gTTS
+import time
+
+os.system('display menu.png &')
+time.sleep(0.1)
+out = os.popen('wmctrl -l').read()
+
+
+for line in out.splitlines():
+	if 'menu.png' in line:
+		wid = line.split()[0]
+
+os.system('wmctrl -i -r '+wid+' -e 0,1100,80,-1,-1')

@@ -153,7 +153,7 @@ QTY = {'turn':'Mi dispiace ma ho solo 2 mani',
 
 PAGAMENTO = {'eff':'00000',
 			 'turn':pagamento_tur,
-			 'exe':pagamento_exe,
+			 'exec':pagamento_exe,
 			 'successors':[{'name':'ATTESA'}],
 			 'name':'PAGAMENTO',
 			 'priority':1}
@@ -258,3 +258,7 @@ FSA = {'ATTESA':ATTESA,
 	   'INFORMAZIONE':INFORMAZIONE,
 	   'ALT':ALT,
 	   'QTY':QTY}
+
+for k,v in FSA.items():
+	for k1 in v.keys():
+		assert k1 in ['successors','successors_f','turn','exec','input','name','priority','memory','eff']

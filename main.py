@@ -1,4 +1,28 @@
 from FSA_config import FSA,world_state
+import os
+import speech_recognition as sr
+from gtts import gTTS
+import time
+
+from ctypes import *
+from contextlib import contextmanager
+import pyaudio
+
+ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+
+def py_error_handler(filename, line, function, err, fmt):
+    pass
+
+c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+
+@contextmanager
+def noalsaerr():
+    asound = cdll.LoadLibrary('libasound.so')
+    asound.snd_lib_error_set_handler(c_error_handler)
+    yield
+    asound.snd_lib_error_set_handler(None)
+
+
 
 def update_world_state(curr_state_dict):
 	curr_state = FSA[curr_state_dict['name']]
@@ -16,33 +40,70 @@ def text_to_speech(curr_state_dict):
 	curr_state = FSA[curr_state_dict['name']]
 	turn = ''
 	if 'turn' in curr_state:
-		turn = curr_state['turn']
-		if callable(curr_state['turn']):
-			turn = process_f(curr_state['turn'],args=[curr_state_dict['input']])
-	
-		if debug:
-			print(turn)
+		if curr_state['name'] != 'ATTESA':
+			turn = curr_state['turn']
+			if callable(curr_state['turn']):
+				turn = process_f(curr_state['turn'],args=[curr_state_dict['input']])
+		
+			if debug:
+				print(turn)
+			else:
+				speak(turn)
 		else:
-			speak(turn)
+			print(curr_state['turn'])
 
+import subprocess
 #TODO
 def speak(turn):
-	return 0
+	#c = "gtts-cli \""+turn+"\" -l \"it\" | mpg123 -"
+	tts = gTTS(turn,'it')
+	tts.save('turn.mp3')
+	#time.sleep(1)
+	print('Ennio: '+turn)
+	#os.system('mpg123 -q /home/luca/Desktop/SHRI/turn.mp3')
+	subprocess.call('mpg123 -q /home/luca/Desktop/SHRI/turn.mp3', 
+					shell=True,
+					stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE)
+	
+	
+	
 
 def speech_to_text(curr_state_dict):
 	curr_state = FSA[curr_state_dict['name']]
 	if 'input' in curr_state:
-		if not debug:
-			if curr_state['input'] == '':
-				return hear()
-			elif callable(curr_state['input']):
-				return process_f(curr_state['input'])
+		if curr_state['name'] != 'ATTESA':
+			if not debug:
+				if curr_state['input'] == '':
+					return hear()
+				elif callable(curr_state['input']):
+					return process_f(curr_state['input'])
+			else:
+				return input('Scrivi: ')
 		else:
 			return input('Scrivi: ')
 
 #TODO
 def hear():
-	return 0
+	r = sr.Recognizer()
+	r.energy_threshold = 200
+	
+	err = True
+	while err:
+		input("Premi 'Invio' per avviare la registrazione")
+
+		with noalsaerr() as n, sr.Microphone() as source:
+			print("In ascolto...")
+			audio = r.listen(source)
+			try:
+				err = False
+				text = r.recognize_google(audio, language="it-IT")
+			except sr.UnknownValueError:
+			    err = True#print("Google Cloud Speech could not understand audio")
+			except sr.RequestError as e:
+			    err = True#print("Could not request results from Google Cloud Speech service; {0}".format(e))
+	print('Tu: '+text)
+	return text
 
 def retrieve_successors(curr_input,curr_state_dict):
 	curr_state = FSA[curr_state_dict['name']]
@@ -71,7 +132,7 @@ def priority_sort_frontier():
 #=====================================================================================
 
 
-debug = True
+debug = False
 debug_frontier = False
 
 frontier = []
